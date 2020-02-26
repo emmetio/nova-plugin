@@ -6,15 +6,16 @@
     "alwaysStrict": true,
     "noImplicitThis": true,
     "strictNullChecks": true,
-    "declaration": true,
+    "declaration": false,
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "lib": ["ES6"],
+    "types": [],
     "module": "commonjs",
     "newLine": "LF",
-    "outDir": "./dist"
+    "outDir": "./Emmet.novaextension"
   },
-  "files": ["src/main.ts"],
-  "include": ["src/*.d.ts"]
+  "include": ["src/*.d.ts", "src/**/*.ts"],
+  "exclude": ["./node_modules/**"]
 }

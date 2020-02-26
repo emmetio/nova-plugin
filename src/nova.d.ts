@@ -8,6 +8,7 @@ type NovaSymbolType = 'function' | 'method' | 'property' | 'class' | 'type'
     | 'union' | 'struct' | 'heading' | 'bookmark';
 
 declare const nova: Environment;
+declare const console: Console;
 
 /**
  * The `AssistantsRegistry` class is used to register and invoke assistants,
@@ -501,7 +502,6 @@ interface NovaSymbol {
 declare class TextEditorEdit {
     /** Deletes text in the the provided `Range`. */
     delete(range: Range): void;
-
 
     /**
      * Replaces text in the the provided `Range` with a new text string.
@@ -2296,4 +2296,20 @@ interface FileChooserOptions {
      * Whether to return paths to the caller which are relative to the workspace
      */
     relative: boolean;
+}
+
+interface Console {
+    assert(condition?: boolean, message?: string, ...data: any[]): void;
+    clear(): void;
+    log(message?: any, ...optionalParams: any[]): void;
+    info(message?: any, ...optionalParams: any[]): void;
+    warn(message?: any, ...optionalParams: any[]): void;
+    error(message?: any, ...optionalParams: any[]): void;
+    group(groupTitle?: string, ...optionalParams: any[]): void;
+    groupEnd(): void;
+    count(label?: string): void;
+    time(label?: string): void;
+    timeEnd(label?: string): void;
+    timeStamp(label?: string): void;
+    trace(message?: any, ...optionalParams: any[]): void;
 }
