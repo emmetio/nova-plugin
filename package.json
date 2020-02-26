@@ -1,0 +1,18 @@
+{
+  "name": "@emmetio/nova-plugin",
+  "version": "1.0.0",
+  "description": "Emmet plugin for Panic Nova editor",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Sergey Chikuyonok <serge.che@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.8.2"
+  },
+  "dependencies": {
+    "emmet": "^2.0.0-rc.10"
+  }
+}
