@@ -22,6 +22,10 @@
     "typescript": "^3.8.2"
   },
   "dependencies": {
+    "@emmetio/action-utils": "^1.0.0",
+    "@emmetio/css-matcher": "^0.1.1",
+    "@emmetio/html-matcher": "^1.2.0",
+    "@emmetio/math-expression": "^1.0.1",
     "emmet": "^2.0.0-rc.10"
   }
 }

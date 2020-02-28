@@ -1,5 +1,5 @@
 /// <reference no-default-lib="true"/>
-/// <reference lib="es5" />
+/// <reference lib="es7" />
 
 type TextEditorCallback = (editor: TextEditor) => void;
 type TextEditCallback = (editor: TextEditorEdit) => void;
