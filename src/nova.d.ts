@@ -1361,7 +1361,7 @@ declare class FileSystem {
      *   * _+_: Open for updating (reading and writing)
      * @param encoding
      */
-    open(path: string, mode: string, encoding: FileEncoding): File;
+    open(path: string, mode: string, encoding?: FileEncoding): File;
 
     /**
      * Creates a FileSystemWatcher object that observes changes to the file system

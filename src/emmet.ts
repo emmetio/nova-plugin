@@ -1,10 +1,11 @@
-import expandAbbreviation, { UserConfig } from 'emmet';
+import expandAbbreviation, { UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
-import evaluate, { extract as extractMath, ExtractOptions } from '@emmetio/math-expression';
+import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
 import { isXML, syntaxFromPos, syntaxInfo, isHTML } from './syntax';
-import { AbbreviationContext } from 'emmet/dist/src/config';
+import extractAbbreviation from 'emmet/dist/src/extract-abbreviation';
+import { getContent } from './utils';
 
 interface NovaSelectItemModel {
     start: number;
@@ -24,8 +25,12 @@ interface ContextTag extends AbbreviationContext {
     close?: Range;
 }
 
-type NovaCSSProperty = CSSProperty<Range>;
-type NovaCSSSection = CSSSection<NovaCSSProperty>;
+export type NovaCSSProperty = CSSProperty<Range>;
+export type NovaCSSSection = CSSSection<NovaCSSProperty>;
+
+interface NovaExtractedAbbreviation extends ExtractedAbbreviation {
+    options: Partial<ExtractOptions>;
+}
 
 /**
  * Expands given abbreviation into code snippet
@@ -41,6 +46,52 @@ export function expand(abbr: string, config?: UserConfig) {
 
     // TODO get global options from config
     return expandAbbreviation(abbr, config);
+}
+
+/**
+ * Extracts abbreviation from given location in editor.
+ * @param editor
+ * @param loc Location in editor content (`number`) from which abbreviation should
+ * be expanded
+ */
+export function extract(editor: TextEditor, loc: number | [number, number] | Range, opt?: Partial<ExtractOptions>): NovaExtractedAbbreviation | undefined {
+    let pos = -1;
+    let range: Range | undefined;
+
+    if (Array.isArray(loc)) {
+        loc = toRange(loc);
+    }
+
+    if (typeof loc === 'number') {
+        pos = loc;
+        range = editor.getLineRangeForRange(new Range(pos, pos));
+    } else {
+        pos = loc.end;
+        range = loc;
+    }
+
+    const text = editor.getTextInRange(range);
+    const { start } = range;
+
+    if (!opt) {
+        opt = getOptions(editor, pos);
+    }
+
+    // No look-ahead for stylesheets: they do not support brackets syntax
+    // and enabled look-ahead produces false matches
+    opt.lookAhead = opt.type !== 'stylesheet';
+
+    // TODO add prefix for JSX syntax
+
+    const abbrData = extractAbbreviation(text, pos - start, opt) as NovaExtractedAbbreviation;
+    if (abbrData) {
+        abbrData.start += start;
+        abbrData.end += start;
+        abbrData.location += start;
+        abbrData.options = opt;
+
+        return abbrData;
+    }
 }
 
 /**
@@ -102,7 +153,7 @@ export function cssSection(code: string, pos: number, properties?: boolean): Nov
 /**
  * Finds and evaluates math expression at given position in line
  */
-export function evaluateMath(code: string, pos: number, options?: Partial<ExtractOptions>): EvaluatedMath | undefined {
+export function evaluateMath(code: string, pos: number, options?: Partial<MathExtractOptions>): EvaluatedMath | undefined {
     const expr = extractMath(code, pos, options);
     if (expr) {
         try {
@@ -204,17 +255,13 @@ export function attachContext(editor: TextEditor, pos: number, config: UserConfi
 }
 
 /**
- * Returns full text content of given editor
- */
-export function getContent(editor: TextEditor): string {
-    return editor.getTextInRange(new Range(0, editor.document.length));
-}
-
-/**
  * Produces tabstop for Nova editor
  */
 function field(index: number, placeholder: string) {
-    return `$[${placeholder ? `${index}:${placeholder}` : index}]`;
+    if (placeholder) {
+        return `\${${index}:${placeholder}}`;
+    }
+    return `$${index}`;
 }
 
 /**
