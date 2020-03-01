@@ -2,6 +2,7 @@ import { expand, extract, getOptions } from './emmet';
 import { getCaret, replaceWithSnippet } from './utils';
 
 import './actions/balance';
+import './actions/comment';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     console.log('run expand');

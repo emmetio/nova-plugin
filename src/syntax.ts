@@ -29,10 +29,10 @@ export function syntaxInfo(editor: TextEditor, pos: number, fallback?: string): 
 /**
  * Returns Emmet syntax for given location in editor
  */
-export function syntaxFromPos(editor: TextEditor, pos: number): string | null {
+export function syntaxFromPos(editor: TextEditor, pos: number): string | undefined {
     const syntax = editor.document.syntax;
     // TODO detect inline CSS
-    return syntax && isSupported(syntax) ? syntax : null;
+    return syntax && isSupported(syntax) ? syntax : undefined;
 }
 
 /**

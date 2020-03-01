@@ -26,6 +26,7 @@
     "@emmetio/css-matcher": "^0.1.1",
     "@emmetio/html-matcher": "^1.2.0",
     "@emmetio/math-expression": "^1.0.1",
+    "@emmetio/scanner": "0.0.7",
     "emmet": "^2.0.0-rc.10"
   }
 }

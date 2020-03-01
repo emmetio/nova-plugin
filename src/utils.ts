@@ -196,6 +196,6 @@ function fileExists(filePath: string) {
     return nova.fs.access(filePath, nova.fs.constants.F_OK);
 }
 
-function isSpace(ch: string): boolean {
-    return /^\s+$/.test(ch);
+export function isSpace(ch: string): boolean {
+    return /^[\s\n\r]+$/.test(ch);
 }

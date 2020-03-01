@@ -25,6 +25,10 @@
       "title": "Balance Inward",
       "command": "emmet.balance-inward",
       "shortcut": "ctrl-shift-d"
+    }, {
+      "title": "Comment Section",
+      "command": "emmet.comment",
+      "shortcut": "ctrl-c"
     }]
   }
 }
