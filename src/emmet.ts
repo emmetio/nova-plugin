@@ -1,11 +1,10 @@
-import expandAbbreviation, { UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
 import { isXML, syntaxFromPos, syntaxInfo, isHTML } from './syntax';
-import extractAbbreviation from 'emmet/dist/src/extract-abbreviation';
-import { getContent } from './utils';
+import { getContent, toRange } from './utils';
 
 interface NovaSelectItemModel {
     start: number;
@@ -36,14 +35,6 @@ interface NovaExtractedAbbreviation extends ExtractedAbbreviation {
  * Expands given abbreviation into code snippet
  */
 export function expand(abbr: string, config?: UserConfig) {
-    config = {
-        ...config,
-        options: {
-            'output.field': field,
-            ...(config && config.options)
-        }
-    };
-
     // TODO get global options from config
     return expandAbbreviation(abbr, config);
 }
@@ -97,9 +88,9 @@ export function extract(editor: TextEditor, loc: number | [number, number] | Ran
 /**
  * Returns list of tags for balancing for given code
  */
-export function balance(code: string, pos: number, direction: 'inward' | 'outward', xml = false) {
+export function balance(code: string, pos: number, inward = false, xml = false) {
     const options = { xml };
-    return direction === 'inward'
+    return inward
         ? balancedInward(code, pos, options)
         : balancedOutward(code, pos, options);
 }
@@ -107,8 +98,8 @@ export function balance(code: string, pos: number, direction: 'inward' | 'outwar
 /**
  * Returns list of selector/property ranges for balancing for given code
  */
-export function balanceCSS(code: string, pos: number, direction: 'inward' | 'outward') {
-    return direction === 'inward'
+export function balanceCSS(code: string, pos: number, inward?: boolean) {
+    return inward
         ? cssBalancedInward(code, pos)
         : cssBalancedOutward(code, pos);
 }
@@ -232,13 +223,22 @@ export function getCSSContext(editor: TextEditor, pos: number): AbbreviationCont
  */
 export function getOptions(editor: TextEditor, pos: number, withContext?: boolean): UserConfig {
     const config = syntaxInfo(editor, pos, 'html') as UserConfig;
+    const lineRange = editor.getLineRangeForRange(editor.selectedRange);
+    const line = editor.getTextInRange(lineRange);
+    const indent = line.match(/^\s+/);
+
+    config.options = {
+        'output.baseIndent': indent ? indent[0] : '',
+        'output.indent': editor.tabText,
+        'output.field': field,
+    }
 
     // Get element context
     if (withContext) {
         attachContext(editor, pos, config);
     }
 
-    return config
+    return config;
 }
 
 /**
@@ -258,15 +258,9 @@ export function attachContext(editor: TextEditor, pos: number, config: UserConfi
  * Produces tabstop for Nova editor
  */
 function field(index: number, placeholder: string) {
-    if (placeholder) {
-        return `\${${index}:${placeholder}}`;
-    }
-    return `$${index}`;
-}
-
-/**
- * Converts Emmet’s text range into Nova range
- */
-function toRange(r: [number, number]): Range {
-    return new Range(r[0], r[1]);
+    return `$[${placeholder || ''}]`;
+    // if (placeholder) {
+    //     return `\${${index}:${placeholder}}`;
+    // }
+    // return `$${index}`;
 }

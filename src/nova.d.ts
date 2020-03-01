@@ -152,7 +152,7 @@ declare class TextEditor {
     static isTextEditor(object: any): boolean;
 
     /** The `TextDocument` object backing the editor. */
-    document: TextDocument;
+    readonly document: TextDocument;
 
     /**
      * The currently selected range, as a `Range`. If the receiver has multiple

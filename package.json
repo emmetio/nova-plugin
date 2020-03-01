@@ -4,10 +4,10 @@
   "description": "Emmet plugin for Panic Nova editor",
   "main": "index.js",
   "scripts": {
-    "build": "rollup -c && npm run assets",
+    "build": "npm run assets && rollup -c",
     "clean": "rm -rf ./Emmet.novaextension",
-    "watch": "rollup -wc",
-    "assets": "cp ./extension.json ./Emmet.novaextension/",
+    "watch": "npm run assets && rollup -wc",
+    "assets": "mkdir -p Emmet.novaextension && cp ./extension.json ./Emmet.novaextension/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

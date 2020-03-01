@@ -2,6 +2,13 @@ import { AttributeToken } from '@emmetio/html-matcher';
 import { NovaCSSProperty } from './emmet';
 
 /**
+ * Converts Emmet’s text range into Nova range
+ */
+export function toRange(r: [number, number]): Range {
+    return new Range(r[0], r[1]);
+}
+
+/**
  * Returns copy of region which starts and ends at non-space character
  */
 export function narrowToNonSpace(editor: TextEditor, range: Range): Range {

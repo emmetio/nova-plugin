@@ -21,7 +21,8 @@ export interface SyntaxInfo {
 export function syntaxInfo(editor: TextEditor, pos: number, fallback?: string): SyntaxInfo {
     const syntax = syntaxFromPos(editor, pos) || fallback;
     return {
-        type: syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup', syntax
+        type: syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup',
+        syntax
     };
 }
 

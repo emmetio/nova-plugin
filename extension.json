@@ -14,11 +14,17 @@
     "requests": true
   },
   "commands": {
-    "editor": [
-      {
-        "title": "Emmet: Expand Abbreviation",
-        "command": "emmet.expand-abbreviation"
-      }
-    ]
+    "editor": [{
+      "title": "Expand Abbreviation",
+      "command": "emmet.expand-abbreviation"
+    }, {
+      "title": "Balance",
+      "command": "emmet.balance",
+      "shortcut": "ctrl-d"
+    }, {
+      "title": "Balance Inward",
+      "command": "emmet.balance-inward",
+      "shortcut": "ctrl-shift-d"
+    }]
   }
 }
