@@ -3,6 +3,7 @@ import { getCaret, replaceWithSnippet } from './utils';
 
 import './actions/balance';
 import './actions/comment';
+import './actions/convert-data-url';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     console.log('run expand');

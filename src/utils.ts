@@ -73,7 +73,8 @@ export async function readFile(filePath: string, size?: number): Promise<ArrayBu
     }
 
     const file = nova.fs.open(filePath, 'rb');
-    return file.read(size) as ArrayBuffer;
+    const data = (size ? file.read(size) : file.read()) as ArrayBuffer;
+    return data;
 }
 
 /**

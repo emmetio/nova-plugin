@@ -29,6 +29,10 @@
       "title": "Comment Section",
       "command": "emmet.comment",
       "shortcut": "ctrl-c"
+    }, {
+      "title": "Convert to data:URL",
+      "command": "emmet.convert-data-url",
+      "shortcut": "ctrl-i"
     }]
   }
 }
