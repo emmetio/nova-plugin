@@ -6,6 +6,7 @@ import './actions/comment';
 import './actions/convert-data-url';
 import './actions/evaluate-math';
 import './actions/go-to-edit-point';
+import './actions/go-to-tag-pair';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     const caret = getCaret(editor);

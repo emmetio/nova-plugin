@@ -45,6 +45,10 @@
       "title": "Go to Previous Edit Point",
       "command": "emmet.go-to-previous-edit-point",
       "shortcut": "ctrl-left"
+    }, {
+      "title": "Go to Tag Pair",
+      "command": "emmet.go-to-tag-pair",
+      "shortcut": "ctrl-shift-g"
     }]
   }
 }
