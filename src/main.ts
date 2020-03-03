@@ -5,9 +5,9 @@ import './actions/balance';
 import './actions/comment';
 import './actions/convert-data-url';
 import './actions/evaluate-math';
+import './actions/go-to-edit-point';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
-    console.log('run expand');
     const caret = getCaret(editor);
     const abbr = extract(editor, caret);
     if (abbr) {

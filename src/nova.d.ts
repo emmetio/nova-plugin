@@ -408,10 +408,10 @@ declare class TextEditor {
  */
 declare class Range {
     /** The start index of the range */
-    start: number;
+    readonly start: number;
 
     /** The end index of the range */
-    end: number;
+    readonly end: number;
 
     /** The length of the range, equivalent to subtracting `start` from `end`. */
     readonly length: number;

@@ -37,6 +37,14 @@
       "title": "Evaluate Math Expression",
       "command": "emmet.evaluate-math",
       "shortcut": "ctrl-y"
+    }, {
+      "title": "Go to Next Edit Point",
+      "command": "emmet.go-to-next-edit-point",
+      "shortcut": "ctrl-right"
+    }, {
+      "title": "Go to Previous Edit Point",
+      "command": "emmet.go-to-previous-edit-point",
+      "shortcut": "ctrl-left"
     }]
   }
 }
