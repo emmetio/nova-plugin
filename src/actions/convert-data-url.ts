@@ -1,9 +1,9 @@
 import { AttributeToken } from '@emmetio/html-matcher';
 import { getOpenTag } from '@emmetio/action-utils';
-import { getCaret, getContent, isURL, locateFile, readFile, isQuoted } from '../utils';
+import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp } from '../utils';
 import { cssSection, NovaCSSProperty } from '../emmet';
 import { syntaxFromPos, isHTML, isCSS } from '../syntax';
-import { b64encode } from './base64';
+import { b64encode, b64decode } from './base64';
 
 const mimeTypes = {
     'gif': 'image/gif',
@@ -19,6 +19,11 @@ nova.commands.register('emmet.convert-data-url', editor => {
     const syntaxName = syntaxFromPos(editor, caret);
 
     if (!syntaxName) {
+        return;
+    }
+
+    if (!editor.document.path) {
+        nova.workspace.showWarningMessage('Please save document before using “Convert data:URL” action');
         return;
     }
 
@@ -76,9 +81,18 @@ function toggleURL(editor: TextEditor, range: Range) {
     const src = editor.getTextInRange(range);
 
     if (src.startsWith('data:')) {
-        // nova.workspace.showInputPanel('Enter file name', {
-        //     value: `image${getExt(src)}`
-        // }, value => value && convertFromDataURL(editor, range, value));
+        nova.workspace.showInputPanel('Enter file name', {
+            value: `image.${getExt(src)}`
+        }, value => {
+            if (value) {
+                try {
+                    convertFromDataURL(editor, range, value)
+                } catch (err) {
+                    nova.workspace.showErrorMessage(err.message);
+                    console.error(err);
+                }
+            }
+        });
     } else {
         convertToDataURL(editor, range);
     }
@@ -124,27 +138,22 @@ async function convertToDataURL(editor: TextEditor, range: Range) {
     }
 }
 
-// function convertFromDataURL(view: TextEditor, region: Range, dest: string) {
-//     const src = view.getTextInRange(region);
-//     const m = src.match(/^data\:.+?;base64,(.+)/);
-//     if (m) {
-//         const base_dir = nova.path.dirname(view.document.path!);
-//         const abs_dest = createPath(base_dir, dest);
-//         const file_url = nova.path.(abs_dest, base_dir).replace('\\', '/')
+function convertFromDataURL(editor: TextEditor, range: Range, dest: string) {
+    const src = editor.getTextInRange(range);
+    const m = src.match(/^data\:.+?;base64,(.+)/);
+    if (m) {
+        const absPath = resolveFilePath(editor, dest);
+        mkdirp(nova.path.dirname(absPath));
+        const file = nova.fs.open(absPath, 'w+b');
+        file.write(b64decode(m[1]));
+        file.close();
 
-//         dest_dir = os.path.dirname(abs_dest)
-//         if not os.path.exists(dest_dir):
-//             os.makedirs(dest_dir)
-
-//         with open(abs_dest, 'wb') as fd:
-//             fd.write(base64.urlsafe_b64decode(m.group(1)))
-
-//         view.run_command('convert_data_url_replace', {
-//             'region': [region.begin(), region.end()],
-//             'text': file_url
-//         })
-//     }
-// }
+        editor.edit(edit => {
+            edit.delete(range);
+            edit.insert(range.start, dest);
+        });
+    }
+}
 
 /**
  * Returns clean (unquoted) value region of given attribute
@@ -178,14 +187,14 @@ function getURLRange(view: TextEditor, cssProp: NovaCSSProperty, pos: number): R
 /**
  * Returns suggested extension from given data:URL string
  */
-// function getExt(dataUrl: string): string {
-//     const m = dataUrl.match(/data:(.+?);/);
-//     if (m) {
-//         for (const key of Object.keys(mimeTypes)) {
-//             if (mimeTypes[key] === m[1]) {
-//                 return key;
-//             }
-//         }
-//     }
-//     return '.jpg';
-// }
+function getExt(dataUrl: string): string {
+    const m = dataUrl.match(/data:(.+?);/);
+    if (m) {
+        for (const key of Object.keys(mimeTypes)) {
+            if (mimeTypes[key] === m[1]) {
+                return key;
+            }
+        }
+    }
+    return '.jpg';
+}

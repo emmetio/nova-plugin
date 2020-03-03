@@ -74,6 +74,7 @@ export async function readFile(filePath: string, size?: number): Promise<ArrayBu
 
     const file = nova.fs.open(filePath, 'rb');
     const data = (size ? file.read(size) : file.read()) as ArrayBuffer;
+    file.close();
     return data;
 }
 
@@ -110,6 +111,59 @@ export function createPath(parent: string, fileName: string): string | undefined
         }
 
         return nova.path.normalize(nova.path.join(parent, fileName));
+    }
+}
+
+/**
+ * Resolves given file path against editor or workspace path
+ */
+export function resolveFilePath(editor: TextEditor, file: string) {
+    // Do some basic normalization
+    file = file.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+
+    if (file[0] === '/') {
+        file = file.replace(/^\/+/, '');
+        // Entered absolute path
+        if (nova.workspace.path) {
+            return nova.path.join(nova.workspace.path, file);
+        }
+    }
+
+    const sep = '/';
+    const editorFile = nova.path.expanduser(editor.document.path || '~/');
+    const parts = nova.path.dirname(editorFile).split(sep);
+    const fileName = nova.path.basename(file);
+    const dirParts = nova.path.dirname(file).split(sep);
+
+    for (const d of dirParts) {
+        if (d === '..') {
+            parts.pop();
+        } else if (!/^\.+$/.test(d)) {
+            parts.push(d);
+        }
+    }
+
+    parts.push(fileName);
+
+    return sep + parts.filter(Boolean).join(sep);
+}
+
+/**
+ * Recursive `mkdir`, similar to `mkdir -p`
+ */
+export function mkdirp(dirPath: string) {
+    let testPath = '';
+    const parts = nova.path.normalize(dirPath).split('/').filter(Boolean);
+    for (const p of parts) {
+        testPath += '/' + p;
+        const stats = nova.fs.stat(testPath);
+        if (stats) {
+            if (stats.isFile() && !stats.isSymbolicLink()) {
+                throw new Error(`Unable to create “${testPath}” directory because it’s a file`);
+            }
+        } else {
+            nova.fs.mkdir(testPath);
+        }
     }
 }
 
@@ -165,7 +219,6 @@ export function patchProperty(view: TextEditor, prop: NovaCSSProperty, value: st
     const after = view.getTextInRange(new Range(prop.value.end, prop.after));
 
     return [before, name, between, value, after].join('');
-
 }
 
 /**
