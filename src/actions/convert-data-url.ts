@@ -1,6 +1,6 @@
 import { AttributeToken } from '@emmetio/html-matcher';
 import { getOpenTag } from '@emmetio/action-utils';
-import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp } from '../utils';
+import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp, replaceWithSnippet } from '../utils';
 import { cssSection, NovaCSSProperty } from '../emmet';
 import { syntaxFromPos, isHTML, isCSS } from '../syntax';
 import { b64encode, b64decode } from './base64';
@@ -127,10 +127,7 @@ async function convertToDataURL(editor: TextEditor, range: Range) {
 
             if (ext in mimeTypes) {
                 const newSrc = `data:${mimeTypes[ext]};base64,${b64encode(data)}`;
-                editor.edit(edit => {
-                    edit.delete(range);
-                    edit.insert(range.start, newSrc);
-                });
+                replaceWithSnippet(editor, range, newSrc);
             }
         }
     } else {
@@ -148,10 +145,7 @@ function convertFromDataURL(editor: TextEditor, range: Range, dest: string) {
         file.write(b64decode(m[1]));
         file.close();
 
-        editor.edit(edit => {
-            edit.delete(range);
-            edit.insert(range.start, dest);
-        });
+        replaceWithSnippet(editor, range, dest);
     }
 }
 
@@ -196,5 +190,5 @@ function getExt(dataUrl: string): string {
             }
         }
     }
-    return '.jpg';
+    return 'jpg';
 }

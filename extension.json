@@ -33,6 +33,10 @@
       "title": "Convert to data:URL",
       "command": "emmet.convert-data-url",
       "shortcut": "ctrl-i"
+    }, {
+      "title": "Evaluate Math Expression",
+      "command": "emmet.evaluate-math",
+      "shortcut": "ctrl-y"
     }]
   }
 }
