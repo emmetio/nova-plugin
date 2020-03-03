@@ -50,6 +50,10 @@
       "command": "emmet.go-to-tag-pair",
       "shortcut": "ctrl-shift-g"
     }, {
+      "title": "Remove Tag",
+      "command": "emmet.remove-tag",
+      "shortcut": "ctrl-'"
+    }, {
       "title": "Increment Number by 1",
       "command": "emmet.increment-number-1",
       "shortcut": "ctrl-up"

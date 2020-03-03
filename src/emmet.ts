@@ -19,7 +19,7 @@ interface EvaluatedMath {
     snippet: string;
 }
 
-interface ContextTag extends AbbreviationContext {
+export interface ContextTag extends AbbreviationContext {
     open: Range;
     close?: Range;
 }
