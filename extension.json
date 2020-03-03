@@ -49,6 +49,30 @@
       "title": "Go to Tag Pair",
       "command": "emmet.go-to-tag-pair",
       "shortcut": "ctrl-shift-g"
+    }, {
+      "title": "Increment Number by 1",
+      "command": "emmet.increment-number-1",
+      "shortcut": "ctrl-up"
+    }, {
+      "title": "Decrement Number by 1",
+      "command": "emmet.decrement-number-1",
+      "shortcut": "ctrl-down"
+    }, {
+      "title": "Increment Number by 0.1",
+      "command": "emmet.increment-number-01",
+      "shortcut": "ctrl-alt-up"
+    }, {
+      "title": "Decrement Number by 0.1",
+      "command": "emmet.decrement-number-01",
+      "shortcut": "ctrl-alt-down"
+    }, {
+      "title": "Increment Number by 10",
+      "command": "emmet.increment-number-10",
+      "shortcut": "ctrl-shift-up"
+    }, {
+      "title": "Decrement Number by 10",
+      "command": "emmet.decrement-number-10",
+      "shortcut": "ctrl-shift-down"
     }]
   }
 }

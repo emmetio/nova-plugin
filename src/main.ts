@@ -7,6 +7,7 @@ import './actions/convert-data-url';
 import './actions/evaluate-math';
 import './actions/go-to-edit-point';
 import './actions/go-to-tag-pair';
+import './actions/inc-dec-number';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     const caret = getCaret(editor);
