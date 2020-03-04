@@ -6,12 +6,6 @@ import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions 
 import { isXML, syntaxFromPos, syntaxInfo, isHTML } from './syntax';
 import { getContent, toRange } from './utils';
 
-interface NovaSelectItemModel {
-    start: number;
-    end: number;
-    ranges: Range[];
-}
-
 interface EvaluatedMath {
     start: number;
     end: number;
@@ -107,17 +101,10 @@ export function balanceCSS(code: string, pos: number, inward?: boolean) {
 /**
  * Returns model for selecting next/previous item
  */
-export function selectItem(code: string, pos: number, isCSS?: boolean, isPrevious?: boolean): NovaSelectItemModel | undefined {
-    const model = isCSS
+export function selectItem(code: string, pos: number, isCSS?: boolean, isPrevious?: boolean) {
+    return isCSS
         ? selectItemCSS(code, pos, isPrevious)
         : selectItemHTML(code, pos, isPrevious);
-
-    if (model) {
-        return {
-            ...model,
-            ranges: model.ranges.map(toRange)
-        };
-    }
 }
 
 /**

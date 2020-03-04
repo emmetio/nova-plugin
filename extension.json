@@ -54,6 +54,14 @@
       "command": "emmet.remove-tag",
       "shortcut": "ctrl-'"
     }, {
+      "title": "Select Next Item",
+      "command": "emmet.select-next-item",
+      "shortcut": "ctrl-shift-right"
+    }, {
+      "title": "Select Previous Item",
+      "command": "emmet.select-previous-item",
+      "shortcut": "ctrl-shift-left"
+    }, {
       "title": "Increment Number by 1",
       "command": "emmet.increment-number-1",
       "shortcut": "ctrl-up"

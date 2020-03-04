@@ -9,6 +9,7 @@ import './actions/go-to-edit-point';
 import './actions/go-to-tag-pair';
 import './actions/inc-dec-number';
 import './actions/remove-tag';
+import './actions/select-item';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     const caret = getCaret(editor);
