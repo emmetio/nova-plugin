@@ -62,6 +62,10 @@
       "command": "emmet.select-previous-item",
       "shortcut": "ctrl-shift-left"
     }, {
+      "title": "Split/Join Tag",
+      "command": "emmet.split-join-tag",
+      "shortcut": "ctrl-shift-'"
+    }, {
       "title": "Increment Number by 1",
       "command": "emmet.increment-number-1",
       "shortcut": "ctrl-up"
