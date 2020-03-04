@@ -188,7 +188,7 @@ export function attributeRange(attr: AttributeToken): Range {
 /**
  * Returns patched version of given HTML attribute, parsed by Emmet HTML matcher
  */
-export function patchAttribute(attr: AttributeToken, value: string, name = attr.name) {
+export function patchAttribute(attr: AttributeToken, value: string | number, name = attr.name) {
     let before = '';
     let after = '';
 
