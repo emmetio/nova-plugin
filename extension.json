@@ -58,6 +58,10 @@
       "command": "emmet.update-image-size",
       "shortcut": "ctrl-i"
     }, {
+      "title": "Wrap With Abbreviation",
+      "command": "emmet.wrap-with-abbreviation",
+      "shortcut": "ctrl-w"
+    }, {
       "title": "Select Next Item",
       "command": "emmet.select-next-item",
       "shortcut": "ctrl-shift-right"

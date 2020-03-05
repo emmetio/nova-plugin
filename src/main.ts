@@ -12,6 +12,7 @@ import './actions/remove-tag';
 import './actions/select-item';
 import './actions/split-join-tag';
 import './actions/update-image-size';
+import './actions/wrap-with-abbreviation';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     const caret = getCaret(editor);
