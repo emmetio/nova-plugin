@@ -6,9 +6,7 @@
   "version": "1.0",
   "categories": [],
   "main": "main.js",
-  "activationEvents": [
-    "onLanguage:html"
-  ],
+  "activationEvents": [],
   "entitlements": {
     "filesystem": "readwrite",
     "requests": true
