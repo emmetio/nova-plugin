@@ -1,5 +1,7 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="es7" />
+/// <reference path="fetch.d.ts" />
+/// <reference path="streams.d.ts" />
 
 type TextEditorCallback = (editor: TextEditor) => void;
 type TextEditCallback = (editor: TextEditorEdit) => void;

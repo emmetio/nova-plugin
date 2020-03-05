@@ -11,11 +11,15 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "lib": ["ES6"],
-    "types": [],
+    "types": ["nova", "text-encoding"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ],
     "module": "commonjs",
     "newLine": "LF",
     "outDir": "./Emmet.novaextension"
   },
-  "include": ["src/*.d.ts", "src/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["./node_modules/**"]
 }

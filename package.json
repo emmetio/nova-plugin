@@ -8,7 +8,7 @@
     "clean": "rm -rf ./Emmet.novaextension",
     "watch": "npm run assets && rollup -wc",
     "assets": "mkdir -p Emmet.novaextension && cp ./extension.json ./Emmet.novaextension/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [],
   "author": "Sergey Chikuyonok <serge.che@gmail.com>",
@@ -16,9 +16,13 @@
   "devDependencies": {
     "@emmetio/abbreviation": "^2.0.0-rc.6",
     "@emmetio/css-abbreviation": "^2.0.0-rc.5",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.7.7",
+    "mocha": "^7.1.0",
     "rollup": "^1.31.1",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.26.0",
+    "ts-node": "^8.6.2",
     "typescript": "^3.8.2"
   },
   "dependencies": {
@@ -28,5 +32,9 @@
     "@emmetio/math-expression": "^1.0.1",
     "@emmetio/scanner": "0.0.7",
     "emmet": "^2.0.0-rc.10"
+  },
+  "mocha": {
+    "require": "./test/register",
+    "spec": "./test/*.ts"
   }
 }

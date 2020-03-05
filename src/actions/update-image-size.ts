@@ -1,16 +1,28 @@
 import { getOpenTag } from '@emmetio/action-utils'
 import { AttributeToken } from '@emmetio/html-matcher';
 import { cssSection, NovaCSSProperty } from '../emmet';
-import { getContent, attributeValue, isURL, locateFile, readFile, attributeRange, patchAttribute, patchProperty } from '../utils'
-import getSize from '../lib/image-size';
+import { getContent, attributeValue, isURL, locateFile, readFile, attributeRange, patchAttribute, patchProperty, getCaret } from '../utils'
+import imageSize from '../lib/image-size';
+import { syntaxFromPos, isHTML, isCSS } from '../syntax';
 
 type HTMLAttributeMap = { [name: string]: AttributeToken };
 type CSSPropertyMap = { [name: string]: NovaCSSProperty };
 
+nova.commands.register('emmet.update-image-size', editor => {
+    const caret = getCaret(editor);
+    const syntax = syntaxFromPos(editor, caret);
+
+    if (isHTML(syntax)) {
+        updateImageSizeHTML(editor, caret);
+    } else if (isCSS(syntax)) {
+        updateImageSizeCSS(editor, caret);
+    }
+});
+
 /**
  * Updates image size in HTML context
  */
-function updateImageSizeHTML(editor: TextEditor, pos: number) {
+async function updateImageSizeHTML(editor: TextEditor, pos: number) {
     const tag = getOpenTag(getContent(editor), pos);
 
     if (tag && tag.name.toLowerCase() === 'img' && tag.attributes) {
@@ -21,7 +33,7 @@ function updateImageSizeHTML(editor: TextEditor, pos: number) {
 
         if (attrs.src?.value) {
             const src = attributeValue(attrs.src);
-            const size = readImageSize(editor, src!);
+            const size = await readImageSize(editor, src!);
             if (size) {
                 patchHTMLSize(editor, attrs, size[0], size[1]);
             } else {
@@ -34,7 +46,7 @@ function updateImageSizeHTML(editor: TextEditor, pos: number) {
 /**
  * Updates image size in CSS context
  */
-function updateImageSizeCSS(editor: TextEditor, pos: number) {
+async function updateImageSizeCSS(editor: TextEditor, pos: number) {
     const section = cssSection(getContent(editor), pos, true);
 
     // Store all properties in lookup table and find matching URL
@@ -50,13 +62,12 @@ function updateImageSizeCSS(editor: TextEditor, pos: number) {
             if (p.value.containsIndex(pos)) {
                 contextProp = p;
                 src = getCSSUrl(editor, p, pos);
-                break;
             }
         }
     }
 
     if (src) {
-        const size = readImageSize(editor, src);
+        const size = await readImageSize(editor, src);
         if (size) {
             patchCSSSize(editor, props, size[0], size[1], contextProp!);
         } else {
@@ -90,12 +101,12 @@ function getDPI(filePath: string): number {
 /**
  * Reads image size of given file, if possible
  */
-async function readImageSize(view: TextEditor, src: string) {
+async function readImageSize(editor: TextEditor, src: string) {
     let absFile: string | undefined;
     if (isURL(src)) {
         absFile = src;
-    } else if (view.document.path) {
-        absFile = locateFile(view.document.path, src);
+    } else if (editor.document.path) {
+        absFile = locateFile(editor.document.path, src);
     }
 
     if (absFile) {
@@ -103,7 +114,7 @@ async function readImageSize(view: TextEditor, src: string) {
         const ext = nova.path.splitext(fileName)[1];
         const chunk = ['svg', 'jpg', 'jpeg'].includes(ext) ? 2048 : 100;
         const data = await readFile(absFile, chunk);
-        const size = getSize(data);
+        const size = imageSize(data);
         if (size) {
             const dpi = getDPI(src);
             return [Math.round(size[0] / dpi), Math.round(size[1] / dpi)];
@@ -116,29 +127,29 @@ async function readImageSize(view: TextEditor, src: string) {
 /**
  * Updates image size of HTML tag
  */
-function patchHTMLSize(view: TextEditor, attrs: HTMLAttributeMap, width: number, height: number) {
-    const width_attr = attrs.width;
-    const height_attr = attrs.height;
+function patchHTMLSize(editor: TextEditor, attrs: HTMLAttributeMap, width: number, height: number) {
+    const widthAttr = attrs.width;
+    const heightAttr = attrs.height;
 
-    if (width_attr && height_attr) {
+    if (widthAttr && heightAttr) {
         // We have both attributes, patch them
-        const wr = attributeRange(width_attr);
-        const hr = attributeRange(height_attr);
-        view.edit(edit => {
+        const wr = attributeRange(widthAttr);
+        const hr = attributeRange(heightAttr);
+        editor.edit(edit => {
             if (wr.start < hr.start) {
-                replace(edit, hr, patchAttribute(height_attr, height));
-                replace(edit, wr, patchAttribute(width_attr, width));
+                edit.replace(hr, patchAttribute(heightAttr, height));
+                edit.replace(wr, patchAttribute(widthAttr, width));
             } else {
-                replace(edit, wr, patchAttribute(width_attr, width));
-                replace(edit, hr, patchAttribute(height_attr, height));
+                edit.replace(wr, patchAttribute(widthAttr, width));
+                edit.replace(hr, patchAttribute(heightAttr, height));
             }
         });
-    } else if (width_attr || height_attr) {
+    } else if (widthAttr || heightAttr) {
         // Use existing attribute and replace it with patched variations
-        const attr = width_attr || height_attr;
+        const attr = widthAttr || heightAttr;
         const data = `${patchAttribute(attr, width, 'width')} ${patchAttribute(attr, height, 'height')}`;
-        view.edit(edit => {
-            replace(edit, attributeRange(attr), data);
+        editor.edit(edit => {
+            edit.replace(attributeRange(attr), data);
         });
     } else if ('src' in attrs) {
         // At least 'src' attribute should be available
@@ -146,14 +157,12 @@ function patchHTMLSize(view: TextEditor, attrs: HTMLAttributeMap, width: number,
         const pos = attr.value != null
             ? attr.valueEnd!
             : attr.nameEnd;
-        const data = `${patchAttribute(attr, width, 'width')} ${patchAttribute(attr, height, 'height')}`;
-        view.edit(edit => {
-            replace(edit, new Range(pos, pos), data);
-        });
+        const data = ` ${patchAttribute(attr, width, 'width')} ${patchAttribute(attr, height, 'height')}`;
+        editor.edit(edit => edit.replace(new Range(pos, pos), data));
     }
 }
 
-function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, height: number, context_prop: NovaCSSProperty) {
+function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, height: number, contextProp: NovaCSSProperty) {
     const widthVal = width + 'px';
     const heightVal = height + 'px';
     const widthProp = props.width;
@@ -163,11 +172,11 @@ function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, 
         // We have both properties, patch them
         editor.edit(edit => {
             if (widthProp.before < heightProp.before) {
-                replace(edit, heightProp.value, heightVal);
-                replace(edit, widthProp.value, widthVal);
+                edit.replace(heightProp.value, heightVal);
+                edit.replace(widthProp.value, widthVal);
             } else {
-                replace(edit, widthProp.value, widthVal)
-                replace(edit, heightProp.value, heightVal);
+                edit.replace(widthProp.value, widthVal);
+                edit.replace(heightProp.value, heightVal);
             }
         });
     } else if (widthProp || heightProp) {
@@ -176,19 +185,14 @@ function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, 
         const data = patchProperty(editor, prop, widthVal, 'width')
             + patchProperty(editor, prop, heightVal, 'height');
         editor.edit(edit => {
-            replace(edit, new Range(prop.before, prop.after), data);
+            edit.replace(new Range(prop.before, prop.after), data);
         });
-    } else if (context_prop) {
+    } else if (contextProp) {
         // Append to source property
-        const data = patchProperty(editor, context_prop, widthVal, 'width')
-            + patchProperty(editor, context_prop, heightVal, 'height');
+        const data = patchProperty(editor, contextProp, widthVal, 'width')
+            + patchProperty(editor, contextProp, heightVal, 'height');
         editor.edit(edit => {
-            edit.insert(context_prop.after, data);
+            edit.replace(new Range(contextProp.after, contextProp.after), data);
         });
     }
-}
-
-function replace(edit: TextEditorEdit, range: Range, value: string) {
-    edit.delete(range);
-    edit.insert(range.start, value);
 }

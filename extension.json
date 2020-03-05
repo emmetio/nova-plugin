@@ -32,7 +32,7 @@
     }, {
       "title": "Convert to data:URL",
       "command": "emmet.convert-data-url",
-      "shortcut": "ctrl-i"
+      "shortcut": "ctrl-shift-i"
     }, {
       "title": "Evaluate Math Expression",
       "command": "emmet.evaluate-math",
@@ -53,6 +53,10 @@
       "title": "Remove Tag",
       "command": "emmet.remove-tag",
       "shortcut": "ctrl-'"
+    }, {
+      "title": "Update Image Size",
+      "command": "emmet.update-image-size",
+      "shortcut": "ctrl-i"
     }, {
       "title": "Select Next Item",
       "command": "emmet.select-next-item",

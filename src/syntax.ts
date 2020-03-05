@@ -38,30 +38,34 @@ export function syntaxFromPos(editor: TextEditor, pos: number): string | undefin
 /**
  * Check if given syntax is XML dialect
  */
-export function isXML(syntax: string): boolean {
-    return xmlSyntaxes.includes(syntax);
+export function isXML(syntax?: string): boolean {
+    return syntax ? xmlSyntaxes.includes(syntax) : false;
 }
 
 /**
  * Check if given syntax is HTML dialect (including XML)
  */
-export function isHTML(syntax: string): boolean {
-    return htmlSyntaxes.includes(syntax) || isXML(syntax);
+export function isHTML(syntax?: string): boolean {
+    return syntax
+        ? htmlSyntaxes.includes(syntax) || isXML(syntax)
+        : false;
 }
 
 /**
  * Check if given syntax name is supported by Emmet
  */
 export function isSupported(syntax: string): boolean {
-    return markupSyntaxes.includes(syntax) || stylesheetSyntaxes.includes(syntax);
+    return syntax
+        ? markupSyntaxes.includes(syntax) || stylesheetSyntaxes.includes(syntax)
+        : false;
 }
 
 /**
  * Check if given syntax is a CSS dialect. Note that it’s not the same as stylesheet
  * syntax: for example, SASS is a stylesheet but not CSS dialect (but SCSS is)
  */
-export function isCSS(syntax: string): boolean {
-    return cssSyntaxes.includes(syntax);
+export function isCSS(syntax?: string): boolean {
+    return syntax ? cssSyntaxes.includes(syntax) : false;
 }
 
 /**

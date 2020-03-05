@@ -1,7 +1,7 @@
 export type Size = [number, number];
 
-export default function getSize(buffer: ArrayBuffer): Size | undefined {
-    return gif(buffer) || png(buffer) || webp(buffer) || jpeg(buffer);
+export default function imageSize(buffer: ArrayBuffer): Size | undefined {
+    return gif(buffer) || png(buffer) || webp(buffer) || jpeg(buffer) || svg(buffer);
 }
 
 function gif(buffer: ArrayBuffer): Size | undefined {
@@ -74,34 +74,50 @@ function webp(buffer: ArrayBuffer): Size | undefined {
 }
 
 function jpeg(buffer: ArrayBuffer): Size | undefined {
-    if (hex(buffer, 0, 2) === 'ffd8') {
-        // Skip 4 chars, they are for signature
-        buffer = buffer.slice(4);
+    const data = new DataView(buffer);
+    let next: number;
+    let offset = 0;
 
-        let next: number
-        while (buffer.byteLength) {
-            const data = new DataView(buffer);
+    if (data.getUint16(offset) === 0xFFD8) {
+        // Skip 4 bytes, they are for signature
+        offset += 4;
+
+        while (offset < buffer.byteLength) {
             // read length of the next block
-            const i = data.getUint16(0);
+            offset += data.getUint16(offset);
 
             // ensure correct format
-            if (i > buffer.byteLength || data.getUint8(i) !== 0xFF) {
+            if (offset > buffer.byteLength || data.getUint8(offset) !== 0xFF) {
                 return;
             }
 
             // 0xFFC0 is baseline standard(SOF)
             // 0xFFC1 is baseline optimized(SOF)
             // 0xFFC2 is progressive(SOF2)
-            next = data.getUint8(i + 1);
+            next = data.getUint8(offset + 1);
             if (next === 0xC0 || next === 0xC1 || next === 0xC2) {
                 return [
-                    data.getUint16(i + 2),
-                    data.getUint16(i),
+                    data.getUint16(offset + 7),
+                    data.getUint16(offset + 5),
                 ];
             }
 
             // move to the next block
-            buffer = buffer.slice(i + 2);
+            offset += 2;
+        }
+    }
+}
+
+function svg(buffer: ArrayBuffer): Size | undefined {
+    const str = new TextDecoder().decode(buffer);
+    const start = str.indexOf('<svg');
+    if (start !== -1) {
+        const end = str.indexOf('>', start);
+        if (end !== -1) {
+            const svgDecl = str.slice(start, end + 1);
+            const w = svgDecl.match(/width=["\'](\d+)/);
+            const h = svgDecl.match(/height=["\'](\d+)/);
+            return [w ? Number(w[1]) : 0, h ? Number(h[1]) : 0];
         }
     }
 }
@@ -111,15 +127,6 @@ function ascii(buf: ArrayBuffer, from = 0, to = buf.byteLength): string {
     let str = '';
     while (from < to) {
         str += String.fromCharCode(view[from++]);
-    }
-    return str;
-}
-
-function hex(buf: ArrayBuffer, from = 0, to = buf.byteLength / 2): string {
-    const view = new Uint16Array(buf);
-    let str = '';
-    while (from < to) {
-        str += view[from++].toString(16);
     }
     return str;
 }

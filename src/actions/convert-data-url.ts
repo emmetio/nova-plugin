@@ -3,7 +3,7 @@ import { getOpenTag } from '@emmetio/action-utils';
 import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp, replaceWithSnippet } from '../utils';
 import { cssSection, NovaCSSProperty } from '../emmet';
 import { syntaxFromPos, isHTML, isCSS } from '../syntax';
-import { b64encode, b64decode } from './base64';
+import { b64encode, b64decode } from '../lib/base64';
 
 const mimeTypes = {
     'gif': 'image/gif',

@@ -196,11 +196,11 @@ export function patchAttribute(attr: AttributeToken, value: string | number, nam
         if (isQuoted(attr.value)) {
             // Quoted value or React-like expression
             before = attr.value[0];
-            after = attr.value[-1];
+            after = attr.value[attr.value.length - 1];
         }
     } else {
         // Attribute without value (boolean)
-        before = after = '"'
+        before = after = '"';
     }
 
     return `${name}=${before}${value}${after}`;
