@@ -4,7 +4,7 @@ import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBa
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
 import { isXML, syntaxFromPos, syntaxInfo, isHTML } from './syntax';
-import { getContent, toRange } from './utils';
+import { getContent, toRange, isQuotedString } from './utils';
 
 interface EvaluatedMath {
     start: number;
@@ -175,14 +175,8 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
             ctx.attributes = {};
             matchedTag.attributes.forEach(attr => {
                 let value = attr.value;
-                if (value) {
-                    const q = value[0];
-                    if (q === '"' || q === "'") {
-                        value = value.slice(1);
-                        if (value[value.length - 1] === q) {
-                            value = value.slice(0, -1);
-                        }
-                    }
+                if (value && isQuotedString(value)) {
+                    value = value.slice(1, -1);
                 }
 
                 ctx!.attributes![attr.name] = value == null ? null : value;

@@ -1,6 +1,6 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["node", "mocha", "text-encoding"]
+    "types": ["node", "mocha", "text-encoding", "nova"]
   }
 }

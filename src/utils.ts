@@ -235,7 +235,7 @@ export function isQuote(ch: string | undefined) {
 /**
  * Check if given string is quoted with single or double quotes
  */
-function isQuotedString(str: string): boolean {
+export function isQuotedString(str: string): boolean {
     return str.length > 1 && isQuote(str[0]) && str[0] === str.slice(-1);
 }
 

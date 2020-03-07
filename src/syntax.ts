@@ -1,3 +1,6 @@
+import { scan, attributes, ElementType } from '@emmetio/html-matcher';
+import { isQuote } from './utils';
+
 const markupSyntaxes = ['html', 'xml', 'xsl', 'jsx', 'haml', 'jade', 'pug', 'slim'];
 const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'sss', 'stylus', 'postcss'];
 const xmlSyntaxes = ['xml', 'xsl', 'jsx'];
@@ -7,6 +10,12 @@ const cssSyntaxes = ['css', 'scss', 'less'];
 export interface SyntaxInfo {
     type: 'markup' | 'stylesheet';
     syntax?: string;
+}
+
+export interface StylesheetRegion {
+    range: [number, number];
+    syntax: string;
+    inline?: boolean;
 }
 
 /**
@@ -69,9 +78,68 @@ export function isCSS(syntax?: string): boolean {
 }
 
 /**
- * Check if abbreviation in given location must be expanded as single line
+ * Extracts ranges from given HTML/XML document with embedded stylesheet syntax
  */
-export function isInline(editor: TextEditor, pt: number): boolean {
-    // TODO implement
-    return false;
+export function extractStylesheetRanges(code: string): StylesheetRegion[] {
+    const result: StylesheetRegion[] = [];
+    let pendingSyntax: string | undefined;
+    let pendingPos = -1;
+
+    scan(code, (name, type, start, end) => {
+        if (name === 'style') {
+            if (type === ElementType.Open) {
+                pendingSyntax = 'css';
+                pendingPos = end;
+
+                for (const attr of attributes(code.slice(start, end), name)) {
+                    // In case if `type` attribute is provided, check its value
+                    // to override default syntax
+                    if (attr.name === 'type' && isCSS(attr.value)) {
+                        pendingSyntax = attr.value;
+                    }
+                }
+            } else if (type === ElementType.Close && pendingSyntax) {
+                result.push({
+                    range: [pendingPos, start],
+                    syntax: pendingSyntax
+                });
+                pendingSyntax = undefined;
+            }
+        } else if (type === ElementType.Open) {
+            // Entered open tag: check if there’s `style` attribute
+            const tag = code.slice(start, end);
+            if (tag.includes('style')) {
+                for (const attr of attributes(tag, name)) {
+                    if (attr.name === 'style' && attr.value != null) {
+                        let valueStart = attr.valueStart!;
+                        let valueEnd = attr.valueEnd!;
+
+                        if (isQuote(tag[valueStart])) {
+                            valueStart++;
+                        }
+
+                        if (isQuote(tag[valueEnd - 1]) && valueEnd > valueStart) {
+                            valueEnd--;
+                        }
+
+                        result.push({
+                            range: [start + valueStart, start + valueEnd],
+                            syntax: 'css',
+                            inline: true
+                        });
+                    }
+                }
+            }
+        }
+    });
+
+    if (pendingSyntax) {
+        // Unclosed <style> element
+        result.push({
+            range: [pendingPos, code.length],
+            syntax: pendingSyntax
+        });
+    }
+
+    return result;
 }
