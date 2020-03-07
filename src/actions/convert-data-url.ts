@@ -2,7 +2,7 @@ import { AttributeToken } from '@emmetio/html-matcher';
 import { getOpenTag } from '@emmetio/action-utils';
 import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp, replaceWithSnippet } from '../utils';
 import { cssSection, NovaCSSProperty } from '../emmet';
-import { syntaxFromPos, isHTML, isCSS } from '../syntax';
+import { isHTML, isCSS, syntaxInfo } from '../syntax';
 import { b64encode, b64decode } from '../lib/base64';
 
 const mimeTypes = {
@@ -16,9 +16,9 @@ const mimeTypes = {
 
 nova.commands.register('emmet.convert-data-url', editor => {
     const caret = getCaret(editor);
-    const syntaxName = syntaxFromPos(editor, caret);
+    const { syntax } = syntaxInfo(editor, caret);
 
-    if (!syntaxName) {
+    if (!syntax) {
         return;
     }
 
@@ -27,9 +27,9 @@ nova.commands.register('emmet.convert-data-url', editor => {
         return;
     }
 
-    if (isHTML(syntaxName)) {
+    if (isHTML(syntax)) {
         convertHTML(editor, caret);
-    } else if (isCSS(syntaxName)) {
+    } else if (isCSS(syntax)) {
         convertCSS(editor, caret);
     }
 });

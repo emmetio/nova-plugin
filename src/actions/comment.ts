@@ -2,7 +2,7 @@ import Scanner from '@emmetio/scanner';
 import { scan, createOptions, ElementType, ScannerOptions } from '@emmetio/html-matcher';
 import matchCSS from '@emmetio/css-matcher';
 import { isSpace, getContent, narrowToNonSpace } from '../utils';
-import { isHTML, syntaxFromPos, isXML, isCSS } from '../syntax';
+import { isHTML, isXML, isCSS, syntaxInfo, SyntaxCache } from '../syntax';
 
 interface Block {
     range: Range;
@@ -23,11 +23,12 @@ const cssComment: CommentTokens = ['/*', '*/'];
 
 nova.commands.register('emmet.comment', editor => {
     const selection = editor.selectedRanges.slice().reverse();
+    const cache: SyntaxCache = {};
     editor.edit(edit => {
         for (const sel of selection) {
-            const syntax = syntaxFromPos(editor, sel.start);
+            const { syntax } = syntaxInfo(editor, sel.start, cache);
             const tokens = syntax && isCSS(syntax) ? cssComment : htmlComment;
-            const block = getRangeForComment(editor, sel.start);
+            const block = getRangeForComment(editor, sel.start, cache);
 
             if (block && block.commentStart) {
                 // Caret inside comment, strip it
@@ -122,8 +123,8 @@ function getCommentRegions(editor: TextEditor, range: Range, tokens: CommentToke
     return result;
 }
 
-function getRangeForComment(editor: TextEditor, pos: number): Block | undefined {
-    const syntax = syntaxFromPos(editor, pos);
+function getRangeForComment(editor: TextEditor, pos: number, cache?: SyntaxCache): Block | undefined {
+    const { syntax } = syntaxInfo(editor, pos, cache);
     if (!syntax) {
         return;
     }

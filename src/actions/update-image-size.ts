@@ -3,14 +3,14 @@ import { AttributeToken } from '@emmetio/html-matcher';
 import { cssSection, NovaCSSProperty } from '../emmet';
 import { getContent, attributeValue, isURL, locateFile, readFile, attributeRange, patchAttribute, patchProperty, getCaret } from '../utils'
 import imageSize from '../lib/image-size';
-import { syntaxFromPos, isHTML, isCSS } from '../syntax';
+import { isHTML, isCSS, syntaxInfo } from '../syntax';
 
 type HTMLAttributeMap = { [name: string]: AttributeToken };
 type CSSPropertyMap = { [name: string]: NovaCSSProperty };
 
 nova.commands.register('emmet.update-image-size', editor => {
     const caret = getCaret(editor);
-    const syntax = syntaxFromPos(editor, caret);
+    const { syntax } = syntaxInfo(editor, caret);
 
     if (isHTML(syntax)) {
         updateImageSizeHTML(editor, caret);

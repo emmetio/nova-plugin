@@ -3,7 +3,7 @@ import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxFromPos, syntaxInfo, isHTML } from './syntax';
+import { isXML, syntaxInfo, isHTML } from './syntax';
 import { getContent, toRange, isQuotedString } from './utils';
 
 interface EvaluatedMath {
@@ -158,7 +158,7 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
 
     if (xml == null) {
         // Autodetect XML dialect
-        const syntax = syntaxFromPos(editor, pos);
+        const syntax = editor.document.syntax;
         xml = syntax ? isXML(syntax) : false;
     }
 
@@ -203,15 +203,22 @@ export function getCSSContext(editor: TextEditor, pos: number): AbbreviationCont
  * Returns Emmet options for given character location in editor
  */
 export function getOptions(editor: TextEditor, pos: number, withContext?: boolean): UserConfig {
-    const config = syntaxInfo(editor, pos, 'html') as UserConfig;
+    const info = syntaxInfo(editor, pos);
+    const config = info as UserConfig;
+    if (!config.syntax) {
+        config.syntax = 'html';
+    }
+
     const lineRange = editor.getLineRangeForRange(editor.selectedRange);
     const line = editor.getTextInRange(lineRange);
     const indent = line.match(/^\s+/);
 
+    // TODO allow user to pick self-close style for HTML: `<br>` or `<br />`
     config.options = {
         'output.baseIndent': indent ? indent[0] : '',
         'output.indent': editor.tabText,
         'output.field': field,
+        "output.format": !info.inline,
     }
 
     // Get element context

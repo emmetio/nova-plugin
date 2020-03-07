@@ -1,5 +1,5 @@
 import { TextRange } from '@emmetio/action-utils';
-import { syntaxFromPos, isCSS, isHTML } from '../syntax';
+import { isCSS, isHTML, syntaxInfo } from '../syntax';
 import { getContent, toRange } from '../utils';
 import { selectItem } from '../emmet';
 
@@ -8,7 +8,7 @@ nova.commands.register('emmet.select-previous-item', editor => selectItemAction(
 
 function selectItemAction(editor: TextEditor, isPrev = false) {
     const sel = editor.selectedRange;
-    const syntax = syntaxFromPos(editor, sel.start);
+    const { syntax } = syntaxInfo(editor, sel.start);
 
     if (!syntax || (!isCSS(syntax) && !isHTML(syntax))) {
         return;

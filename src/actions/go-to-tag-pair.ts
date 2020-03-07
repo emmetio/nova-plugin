@@ -1,5 +1,5 @@
 import { getCaret } from '../utils';
-import { syntaxFromPos, isHTML, isXML } from '../syntax';
+import { isHTML, isXML, syntaxInfo } from '../syntax';
 import { getTagContext } from '../emmet';
 
 nova.commands.register('emmet.go-to-tag-pair', editor => {
@@ -9,7 +9,7 @@ nova.commands.register('emmet.go-to-tag-pair', editor => {
         caret++;
     }
 
-    const syntax = syntaxFromPos(editor, caret);
+    const { syntax } = syntaxInfo(editor, caret);
     if (syntax && isHTML(syntax)) {
         const ctx = getTagContext(editor, caret, isXML(syntax));
         if (ctx && ctx.open && ctx.close) {

@@ -44,8 +44,8 @@ function getRanges(editor: TextEditor, pos: number, syntax: string, inward?: boo
 }
 
 function balanceAction(editor: TextEditor, inward?: boolean) {
-    const info = syntaxInfo(editor, getCaret(editor), 'html');
-    const { syntax } = info;
+    const info = syntaxInfo(editor, getCaret(editor));
+    const syntax = info.syntax || 'html';
 
     if (syntax && (info.type === 'markup' || isCSS(syntax))) {
         editor.selectedRanges = inward

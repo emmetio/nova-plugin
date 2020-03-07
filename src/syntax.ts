@@ -1,5 +1,5 @@
 import { scan, attributes, ElementType } from '@emmetio/html-matcher';
-import { isQuote } from './utils';
+import { isQuote, getContent } from './utils';
 
 const markupSyntaxes = ['html', 'xml', 'xsl', 'jsx', 'haml', 'jade', 'pug', 'slim'];
 const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'sss', 'stylus', 'postcss'];
@@ -10,12 +10,17 @@ const cssSyntaxes = ['css', 'scss', 'less'];
 export interface SyntaxInfo {
     type: 'markup' | 'stylesheet';
     syntax?: string;
+    inline?: boolean;
 }
 
 export interface StylesheetRegion {
     range: [number, number];
     syntax: string;
     inline?: boolean;
+}
+
+export interface SyntaxCache {
+    stylesheetRegions?: StylesheetRegion[];
 }
 
 /**
@@ -27,21 +32,28 @@ export interface StylesheetRegion {
  * returns `null`, but if `fallback` argument is provided, it returns data for
  * given fallback syntax
  */
-export function syntaxInfo(editor: TextEditor, pos: number, fallback?: string): SyntaxInfo {
-    const syntax = syntaxFromPos(editor, pos) || fallback;
+export function syntaxInfo(editor: TextEditor, pos: number, cache?: SyntaxCache): SyntaxInfo {
+    let syntax = editor.document.syntax;
+    let inline: boolean | undefined;
+    console.log('document syntax:', syntax);
+
+
+    if (syntax === 'html') {
+        // In HTML documents it’s possible to embed stylesheets.
+        // Check if `pos` is in such region
+        const stylesheet = getStylesheetRegion(getContent(editor), pos, cache);
+
+        if (stylesheet) {
+            syntax = stylesheet.syntax;
+            inline = stylesheet.inline;
+        }
+    }
+
     return {
         type: syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup',
-        syntax
+        syntax,
+        inline
     };
-}
-
-/**
- * Returns Emmet syntax for given location in editor
- */
-export function syntaxFromPos(editor: TextEditor, pos: number): string | undefined {
-    const syntax = editor.document.syntax;
-    // TODO detect inline CSS
-    return syntax && isSupported(syntax) ? syntax : undefined;
 }
 
 /**
@@ -105,7 +117,7 @@ export function extractStylesheetRanges(code: string): StylesheetRegion[] {
                 });
                 pendingSyntax = undefined;
             }
-        } else if (type === ElementType.Open) {
+        } else if (type === ElementType.Open || type === ElementType.SelfClose) {
             // Entered open tag: check if there’s `style` attribute
             const tag = code.slice(start, end);
             if (tag.includes('style')) {
@@ -142,4 +154,18 @@ export function extractStylesheetRanges(code: string): StylesheetRegion[] {
     }
 
     return result;
+}
+
+function getStylesheetRegion(code: string, pos: number, cache?: SyntaxCache): StylesheetRegion | undefined {
+    let regions: StylesheetRegion[];
+    if (cache) {
+        regions = cache.stylesheetRegions || (cache.stylesheetRegions = extractStylesheetRanges(code));
+    } else {
+        regions = extractStylesheetRanges(code);
+    }
+
+    console.log('found stylesheet regions:', JSON.stringify(regions));
+    console.log('current pos', pos);
+
+    return regions.find(r => r.range[0] <= pos && pos <= r.range[1]);
 }

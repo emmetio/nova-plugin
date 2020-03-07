@@ -14,7 +14,8 @@ describe('Syntax utils', () => {
         deepEqual(extractStylesheetRanges(html), [
             { range: [185, 242], syntax: 'css' },
             { range: [282, 296], syntax: 'css', inline: true },
-            { range: [351, 351], syntax: 'css', inline: true }
+            { range: [351, 351], syntax: 'css', inline: true },
+            { range: [422, 435], syntax: 'css', inline: true },
         ])
     });
 });
