@@ -1,4 +1,4 @@
-import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation, Options } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
@@ -209,17 +209,8 @@ export function getOptions(editor: TextEditor, pos: number, withContext?: boolea
         config.syntax = 'html';
     }
 
-    const lineRange = editor.getLineRangeForRange(editor.selectedRange);
-    const line = editor.getTextInRange(lineRange);
-    const indent = line.match(/^\s+/);
-
     // TODO allow user to pick self-close style for HTML: `<br>` or `<br />`
-    config.options = {
-        'output.baseIndent': indent ? indent[0] : '',
-        'output.indent': editor.tabText,
-        'output.field': field,
-        "output.format": !info.inline,
-    }
+    config.options = getOutputOptions(editor, info.inline);
 
     // Get element context
     if (withContext) {
@@ -227,6 +218,19 @@ export function getOptions(editor: TextEditor, pos: number, withContext?: boolea
     }
 
     return config;
+}
+
+export function getOutputOptions(editor: TextEditor, inline?: boolean): Partial<Options> {
+    const lineRange = editor.getLineRangeForRange(editor.selectedRange);
+    const line = editor.getTextInRange(lineRange);
+    const indent = line.match(/^\s+/);
+
+    return {
+        'output.baseIndent': indent ? indent[0] : '',
+        'output.indent': editor.tabText,
+        'output.field': field,
+        'output.format': !inline,
+    };
 }
 
 /**

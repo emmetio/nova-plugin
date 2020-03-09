@@ -47,7 +47,7 @@ interface ColorAssistant {
 }
 
 interface CompletionAssistant {
-    provideCompletionItems(editor: TextDocument, context: CompletionContext): CompletionItem[];
+    provideCompletionItems(editor: TextEditor, context: CompletionContext): CompletionItem[];
 }
 
 interface IssueAssistant {
@@ -526,6 +526,11 @@ declare class TextEditorEdit {
  */
 declare class TextDocument {
     /**
+     * Unique identifier of opened document
+     */
+    readonly uri: string;
+
+    /**
      * Returns the document’s path, as a `String`, or `null` if the document is unsaved.
      * If the document is remote, this will be the path on the relevant server.
      */
@@ -725,7 +730,7 @@ declare class CompletionItem {
      * contains any characters other than `$`, `[` and `]`. By default this property
      * is `false`.
      */
-    tokenize: boolean;
+    tokenize?: boolean;
 
     constructor(label: string, kind: CompletionItemKind);
 }

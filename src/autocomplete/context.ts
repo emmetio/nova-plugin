@@ -1,0 +1,187 @@
+import { AbbreviationContext } from 'emmet';
+import { scan, createOptions, attributes, ElementType, AttributeToken, ScannerOptions } from '@emmetio/html-matcher';
+import matchCSS from '@emmetio/css-matcher';
+import { isQuote, isQuotedString } from '../utils';
+import { isCSS } from '../syntax';
+
+export interface ActivationContext {
+    syntax: string;
+    context?: AbbreviationContext;
+    inline?: boolean;
+}
+
+interface Tag {
+    name: string;
+    start: number;
+    end: number;
+}
+
+/**
+ * Returns valid abbreviation context for given location in editor.
+ * Since Nova doesn’t provide API for getting syntax data from editor, we have to
+ * ensure that given location can be used for abbreviation expanding.
+ * For example, in given HTML code:
+ * `<div title="Sample" style="">Hello world</div>`
+ * it’s not allowed to expand abbreviations inside `<div ...>` or `</div>`,
+ * yet it’s allowed inside `style` attribute and between tags.
+ *
+ * This method ensures that given `pos` is inside location allowed for expanding
+ * abbreviations and returns context data about it
+ */
+export default function getAbbreviationContext(editor: TextEditor, pos: number) {
+
+}
+
+function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationContext | null {
+    // By default, we assume that caret is in proper location and if it’s not,
+    // we’ll reset this value
+    let result: ActivationContext | null = { syntax: 'html' };
+
+    // Since we expect large input document, we’ll use pooling technique
+    // for storing tag data to reduce memory pressure and improve performance
+    const pool: Tag[] = [];
+    const stack: Tag[] = [];
+    const options = createOptions({ xml });
+    let offset = 0;
+
+    scan(code, (name, type, start, end) => {
+        offset = start;
+
+        if (type === ElementType.Open && isSelfClose(name, options)) {
+            // Found empty element in HTML mode, mark is as self-closing
+            type = ElementType.SelfClose;
+        }
+
+        if (type === ElementType.Open) {
+            // Allocate tag object from pool
+            stack.push(allocTag(pool, name, start, end));
+        } else if (type === ElementType.Close && stack.length && last(stack)!.name === name) {
+            // Release tag object for further re-use
+            releaseTag(pool, stack.pop()!);
+        }
+
+        if (end <= pos) {
+            return;
+        }
+
+        if (start >= pos) {
+            // Moved beyond location, stop parsing
+            return false;
+        }
+
+        if (type === ElementType.Open || type === ElementType.SelfClose) {
+            // Inside opening or self-closed tag: completions prohibited by default
+            // except in `style` attribute
+            const tag = code.slice(start, end);
+            if (tag.includes('style')) {
+                for (const attr of attributes(tag, name)) {
+                    if (attr.name === 'style' && attr.value != null) {
+                        const [valueStart, valueEnd] = attributeValueRange(tag, attr, start);
+                        if (pos >= valueStart && pos <= valueEnd) {
+                            result!.syntax = 'css';
+                            result!.inline = true;
+                            result!.context = createCSSAbbreviationContext(code.slice(valueStart, valueEnd), pos - valueStart);
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        // If we reached here, location is inside location where abbreviations
+        // are not allowed
+        result = null;
+        return false;
+    }, options);
+
+    if (result && stack.length) {
+        const lastTag = last(stack)!;
+        if (lastTag.name === 'style' && pos > lastTag.end) {
+            // Location is inside <style> tag
+            result.syntax = getSyntaxForStyleTag(code, lastTag);
+            result.context = createCSSAbbreviationContext(code.slice(lastTag.end, offset), pos - lastTag.end);
+        } else {
+            result.context = createHTMLAbbreviationContext(code, lastTag);
+        }
+    }
+
+    return result;
+}
+
+function createHTMLAbbreviationContext(code: string, tag: Tag): AbbreviationContext {
+    const attrs: { [name: string]: string } = {};
+    for (const attr of attributes(code.slice(tag.start, tag.end), tag.name)) {
+        let value = attr.value;
+        if (value && isQuotedString(value)) {
+            value = value.slice(1, -1);
+        }
+        attrs[attr.name] = value!;
+    }
+
+    return {
+        name: tag.name,
+        attributes: attrs
+    };
+}
+
+function createCSSAbbreviationContext(code: string, pos: number): AbbreviationContext | undefined {
+    const matched = matchCSS(code, pos);
+    if (matched && matched.type === 'property') {
+        return {
+            name: code.slice(matched.start, matched.bodyStart).replace(/:\s*$/, '')
+        };
+    }
+}
+
+function attributeValueRange(tag: string, attr: AttributeToken, offset = 0): [number, number] {
+    let valueStart = attr.valueStart!;
+    let valueEnd = attr.valueEnd!;
+
+    if (isQuote(tag[valueStart])) {
+        valueStart++;
+    }
+
+    if (isQuote(tag[valueEnd - 1]) && valueEnd > valueStart) {
+        valueEnd--;
+    }
+
+    return [offset + valueStart, offset + valueEnd];
+}
+
+function getSyntaxForStyleTag(code: string, tag: Tag): string {
+    for (const attr of attributes(code.slice(tag.start, tag.end), tag.name)) {
+        // In case if `type` attribute is provided, check its value
+        // to override default syntax
+        if (attr.name === 'type' && isCSS(attr.value)) {
+            return attr.value!;
+        }
+    }
+
+    return 'css';
+}
+
+/**
+ * Check if given tag is self-close for current parsing context
+ */
+function isSelfClose(name: string, options: ScannerOptions) {
+    return !options.xml && options.empty.includes(name);
+}
+
+function allocTag(pool: Tag[], name: string, start: number, end: number): Tag {
+    if (pool.length) {
+        const tag = pool.pop()!;
+        tag.name = name;
+        tag.start = start;
+        tag.end = end;
+        return tag;
+    }
+    return { name, start, end };
+}
+
+function releaseTag(pool: Tag[], tag: Tag) {
+    pool.push(tag);
+}
+
+function last<T>(arr: T[]): T | null {
+    return arr.length ? arr[arr.length - 1] : null;
+}

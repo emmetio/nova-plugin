@@ -35,8 +35,6 @@ export interface SyntaxCache {
 export function syntaxInfo(editor: TextEditor, pos: number, cache?: SyntaxCache): SyntaxInfo {
     let syntax = editor.document.syntax;
     let inline: boolean | undefined;
-    console.log('document syntax:', syntax);
-
 
     if (syntax === 'html') {
         // In HTML documents it’s possible to embed stylesheets.
@@ -163,9 +161,6 @@ function getStylesheetRegion(code: string, pos: number, cache?: SyntaxCache): St
     } else {
         regions = extractStylesheetRanges(code);
     }
-
-    console.log('found stylesheet regions:', JSON.stringify(regions));
-    console.log('current pos', pos);
 
     return regions.find(r => r.range[0] <= pos && pos <= r.range[1]);
 }
