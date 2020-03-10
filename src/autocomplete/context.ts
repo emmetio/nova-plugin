@@ -1,6 +1,6 @@
 import { AbbreviationContext } from 'emmet';
 import { scan, createOptions, attributes, ElementType, AttributeToken, ScannerOptions } from '@emmetio/html-matcher';
-import matchCSS from '@emmetio/css-matcher';
+import matchCSS, { scan as scanCSS, TokenType } from '@emmetio/css-matcher';
 import { isQuote, isQuotedString } from '../utils';
 import { isCSS } from '../syntax';
 
@@ -108,19 +108,62 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Activa
         let context: AbbreviationContext | undefined;
 
         if (lastTag.name === 'style' && pos >= lastTag.end) {
-            // Location is inside <style> tag
-            result.syntax = getSyntaxForStyleTag(code, lastTag);
-            context = createCSSAbbreviationContext(code.slice(lastTag.end, offset), pos - lastTag.end);
+            // Location is inside <style> tag: we should detect if caret is in
+            // proper  stylesheet context, otherwise completions are prohibited
+            context = getCSSContext(code.slice(lastTag.end, offset), pos - lastTag.end);
+            if (!context) {
+                result = null;
+            } else {
+                result.syntax = getSyntaxForStyleTag(code, lastTag);
+            }
         } else if (!isCSS(result.syntax)) {
             context = createHTMLAbbreviationContext(code, lastTag);
         }
 
-        if (context) {
+        if (context && result) {
             result.context = context;
         }
     }
 
     return result;
+}
+
+export function getCSSContext(code: string, pos: number): AbbreviationContext | undefined {
+    let section = 0;
+    let valid = true;
+    let name = '';
+
+    scanCSS(code, (type, start, end) => {
+        if (start >= pos) {
+            // Moved beyond target location, stop parsing
+            return false;
+        }
+
+        if (start <= pos && end >= pos) {
+            // Direct hit into token: in this case, the only allowed token here
+            // is property value
+            valid = type === TokenType.PropertyValue;
+            return false;
+        }
+
+        switch (type) {
+            case TokenType.Selector:
+                section++; break;
+
+            case TokenType.PropertyName:
+                name = code.slice(start, end); break;
+
+            case TokenType.PropertyValue:
+                name = ''; break;
+
+            case TokenType.BlockEnd:
+                section--; break;
+        }
+    });
+
+    if (valid && (name || section)) {
+        return { name };
+    }
 }
 
 function createHTMLAbbreviationContext(code: string, tag: Tag): AbbreviationContext {
@@ -201,6 +244,6 @@ function releaseTag(pool: Tag[], tag: Tag) {
     pool.push(tag);
 }
 
-function last<T>(arr: T[]): T | null {
-    return arr.length ? arr[arr.length - 1] : null;
+function last<T>(arr: T[]): T | undefined {
+    return arr.length ? arr[arr.length - 1] : undefined;
 }

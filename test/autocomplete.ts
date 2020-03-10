@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { AbbreviationContext } from 'emmet';
-import { deepStrictEqual as deepEqual, strictEqual as equal } from 'assert';
-import { getHTMLContext } from '../src/autocomplete/context';
+import { deepStrictEqual as deepEqual } from 'assert';
+import { getHTMLContext, getCSSContext } from '../src/autocomplete/context';
 
 function read(fileName: string): string {
     const absPath = path.resolve(__dirname, fileName);
@@ -20,12 +20,13 @@ function context(name: string, attributes?: { [name: string]: string }): Abbrevi
 describe('Autocomplete provider', () => {
     it('HTML context', () => {
         const html = read('./samples/embedded-style.html');
+
         deepEqual(getHTMLContext(html, 298), {
             syntax: 'html',
             context: context('div', { style: 'padding: 10px;' })
         });
         // Inside tag, ignore context
-        equal(getHTMLContext(html, 276), null);
+        deepEqual(getHTMLContext(html, 276), null);
 
         // Inside tag but in `style` attribute value: syntax is `css` but no context
         // since caret is inside property name
@@ -51,10 +52,49 @@ describe('Autocomplete provider', () => {
             syntax: 'css',
             inline: true
         });
+    });
 
-        // Inside <style> tag
-        // console.log(getHTMLContext(html, 213));
-        // console.log(getHTMLContext(html, 194));
+    it('CSS in HTML', () => {
+        const html = read('./samples/embedded-style.html');
 
+        // Inside <style> tag, inside selector block
+        deepEqual(getHTMLContext(html, 212), {
+            syntax: 'css',
+            context: context('')
+        });
+
+        // Outside selector block
+        deepEqual(getHTMLContext(html, 194), null);
+
+        // Inside property value
+        deepEqual(getHTMLContext(html, 224), {
+            syntax: 'css',
+            context: context('padding')
+        });
+    });
+
+    it('CSS context', () => {
+        const scss = read('./samples/style.scss');
+
+        // Not inside selector block
+        deepEqual(getCSSContext(scss, 9), undefined);
+
+        // ...but inside property (variable)
+        deepEqual(getCSSContext(scss, 5), { name: '$foo' });
+
+        // Inside selector
+        deepEqual(getCSSContext(scss, 12), undefined);
+
+        // Inside selector block
+        deepEqual(getCSSContext(scss, 36), { name: '' });
+
+        // Inside property value
+        deepEqual(getCSSContext(scss, 32), { name: 'padding' });
+
+        // Still inside selector block
+        deepEqual(getCSSContext(scss, 125), { name: '' });
+
+        // Not inside selector
+        deepEqual(getCSSContext(scss, 128), undefined);
     });
 });
