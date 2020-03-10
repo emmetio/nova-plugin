@@ -26,7 +26,7 @@ describe('Autocomplete provider', () => {
             context: context('div', { style: 'padding: 10px;' })
         });
         // Inside tag, ignore context
-        deepEqual(getHTMLContext(html, 276), null);
+        deepEqual(getHTMLContext(html, 276), undefined);
 
         // Inside tag but in `style` attribute value: syntax is `css` but no context
         // since caret is inside property name
@@ -64,7 +64,7 @@ describe('Autocomplete provider', () => {
         });
 
         // Outside selector block
-        deepEqual(getHTMLContext(html, 194), null);
+        deepEqual(getHTMLContext(html, 194), undefined);
 
         // Inside property value
         deepEqual(getHTMLContext(html, 224), {

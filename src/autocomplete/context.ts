@@ -1,8 +1,8 @@
 import { AbbreviationContext } from 'emmet';
 import { scan, createOptions, attributes, ElementType, AttributeToken, ScannerOptions } from '@emmetio/html-matcher';
 import matchCSS, { scan as scanCSS, TokenType } from '@emmetio/css-matcher';
-import { isQuote, isQuotedString } from '../utils';
-import { isCSS } from '../syntax';
+import { isQuote, isQuotedString, getContent } from '../utils';
+import { isCSS, isHTML, isXML } from '../syntax';
 
 export interface ActivationContext {
     syntax: string;
@@ -28,15 +28,26 @@ interface Tag {
  * This method ensures that given `pos` is inside location allowed for expanding
  * abbreviations and returns context data about it
  */
-export default function getAbbreviationContext(editor: TextEditor, pos: number) {
+export default function getAbbreviationContext(editor: TextEditor, pos: number): ActivationContext | void {
+    const syntax = editor.document.syntax;
 
+    if (isHTML(syntax)) {
+        return getHTMLContext(getContent(editor), pos, isXML(syntax));
+    }
+
+    if (isCSS(syntax)) {
+        const context = getCSSContext(getContent(editor), pos);
+        if (context && syntax) {
+            return { syntax, context };
+        }
+    }
 }
 
 /**
  * Returns HTML autocomplete activation context for given location in source code,
  * if available
  */
-export function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationContext | null {
+export function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationContext | undefined {
     // By default, we assume that caret is in proper location and if it’s not,
     // we’ll reset this value
     let result: ActivationContext | null = { syntax: 'html' };
@@ -125,7 +136,7 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Activa
         }
     }
 
-    return result;
+    return result || void 0;
 }
 
 export function getCSSContext(code: string, pos: number): AbbreviationContext | undefined {
