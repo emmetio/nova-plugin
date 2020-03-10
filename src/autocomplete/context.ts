@@ -32,7 +32,11 @@ export default function getAbbreviationContext(editor: TextEditor, pos: number) 
 
 }
 
-function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationContext | null {
+/**
+ * Returns HTML autocomplete activation context for given location in source code,
+ * if available
+ */
+export function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationContext | null {
     // By default, we assume that caret is in proper location and if it’s not,
     // we’ll reset this value
     let result: ActivationContext | null = { syntax: 'html' };
@@ -46,6 +50,11 @@ function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationCon
 
     scan(code, (name, type, start, end) => {
         offset = start;
+
+        if (start >= pos) {
+            // Moved beyond location, stop parsing
+            return false;
+        }
 
         if (type === ElementType.Open && isSelfClose(name, options)) {
             // Found empty element in HTML mode, mark is as self-closing
@@ -64,11 +73,6 @@ function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationCon
             return;
         }
 
-        if (start >= pos) {
-            // Moved beyond location, stop parsing
-            return false;
-        }
-
         if (type === ElementType.Open || type === ElementType.SelfClose) {
             // Inside opening or self-closed tag: completions prohibited by default
             // except in `style` attribute
@@ -80,7 +84,12 @@ function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationCon
                         if (pos >= valueStart && pos <= valueEnd) {
                             result!.syntax = 'css';
                             result!.inline = true;
-                            result!.context = createCSSAbbreviationContext(code.slice(valueStart, valueEnd), pos - valueStart);
+
+                            const context = createCSSAbbreviationContext(code.slice(valueStart, valueEnd), pos - valueStart);
+                            if (context) {
+                                result!.context = context;
+                            }
+
                             return false;
                         }
                     }
@@ -88,7 +97,7 @@ function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationCon
             }
         }
 
-        // If we reached here, location is inside location where abbreviations
+        // If we reached here, `pos` is inside location where abbreviations
         // are not allowed
         result = null;
         return false;
@@ -96,12 +105,18 @@ function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationCon
 
     if (result && stack.length) {
         const lastTag = last(stack)!;
-        if (lastTag.name === 'style' && pos > lastTag.end) {
+        let context: AbbreviationContext | undefined;
+
+        if (lastTag.name === 'style' && pos >= lastTag.end) {
             // Location is inside <style> tag
             result.syntax = getSyntaxForStyleTag(code, lastTag);
-            result.context = createCSSAbbreviationContext(code.slice(lastTag.end, offset), pos - lastTag.end);
-        } else {
-            result.context = createHTMLAbbreviationContext(code, lastTag);
+            context = createCSSAbbreviationContext(code.slice(lastTag.end, offset), pos - lastTag.end);
+        } else if (!isCSS(result.syntax)) {
+            context = createHTMLAbbreviationContext(code, lastTag);
+        }
+
+        if (context) {
+            result.context = context;
         }
     }
 
@@ -127,9 +142,13 @@ function createHTMLAbbreviationContext(code: string, tag: Tag): AbbreviationCont
 function createCSSAbbreviationContext(code: string, pos: number): AbbreviationContext | undefined {
     const matched = matchCSS(code, pos);
     if (matched && matched.type === 'property') {
-        return {
-            name: code.slice(matched.start, matched.bodyStart).replace(/:\s*$/, '')
-        };
+        // Ensure location is right after name delimiter, e.g. `:`
+        const prefix = code.slice(matched.start, matched.bodyStart).trim();
+        if (pos >= matched.start + prefix.length) {
+            return {
+                name: prefix.replace(/:$/, '')
+            };
+        }
     }
 }
 
