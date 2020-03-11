@@ -47,7 +47,7 @@ interface ColorAssistant {
 }
 
 interface CompletionAssistant {
-    provideCompletionItems(editor: TextEditor, context: CompletionContext): CompletionItem[];
+    provideCompletionItems(editor: TextEditor, context: CompletionContext): CompletionItem[] | undefined;
 }
 
 interface IssueAssistant {

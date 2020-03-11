@@ -230,6 +230,7 @@ export function getOutputOptions(editor: TextEditor, inline?: boolean): Partial<
         'output.indent': editor.tabText,
         'output.field': field,
         'output.format': !inline,
+        'output.newline': editor.document.eol
     };
 }
 

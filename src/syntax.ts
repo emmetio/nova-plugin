@@ -1,3 +1,4 @@
+import { SyntaxType } from 'emmet';
 import { scan, attributes, ElementType } from '@emmetio/html-matcher';
 import { isQuote, getContent } from './utils';
 
@@ -8,7 +9,7 @@ const htmlSyntaxes = ['html'];
 const cssSyntaxes = ['css', 'scss', 'less'];
 
 export interface SyntaxInfo {
-    type: 'markup' | 'stylesheet';
+    type: SyntaxType;
     syntax?: string;
     inline?: boolean;
 }
@@ -48,10 +49,17 @@ export function syntaxInfo(editor: TextEditor, pos: number, cache?: SyntaxCache)
     }
 
     return {
-        type: syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup',
+        type: getSyntaxType(syntax),
         syntax,
         inline
     };
+}
+
+/**
+ * Returns Emmet abbreviation type for given syntax
+ */
+export function getSyntaxType(syntax?: string): SyntaxType {
+    return syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup';
 }
 
 /**
