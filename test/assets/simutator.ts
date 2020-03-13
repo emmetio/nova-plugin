@@ -18,7 +18,9 @@ export default function createSimulator(text = '', pos = 0, callbacks?: EventHan
         if (callbacks && typeof callbacks[key] === 'function') {
             callbacks[key]!(editor);
         }
-    }
+    };
+
+    const move = (pos: number) => editor.selectedRange = new Range(pos, pos);
 
     /** Simulates character input */
     const input = (text: string) => {
@@ -31,8 +33,9 @@ export default function createSimulator(text = '', pos = 0, callbacks?: EventHan
             }
 
             e.insert(start, text);
-            select(start + text.length);
+            move(start + text.length);
             handle('onChange');
+            handle('onSelectionChange');
         });
     };
 
@@ -46,13 +49,15 @@ export default function createSimulator(text = '', pos = 0, callbacks?: EventHan
                 const { start } = selectedRange;
                 if (start > 0) {
                     e.delete(new Range(start - 1, start));
-                    select(start - 1);
+                    move(start - 1);
                     handle('onChange');
+                    handle('onSelectionChange');
                 }
             } else {
                 e.delete(selectedRange);
-                select(selectedRange.start);
+                move(selectedRange.start);
                 handle('onChange');
+                handle('onSelectionChange');
             }
         });
     };
@@ -69,8 +74,9 @@ export default function createSimulator(text = '', pos = 0, callbacks?: EventHan
                 e.delete(selectedRange);
             }
 
-            select(selectedRange.start);
+            move(selectedRange.start);
             handle('onChange');
+            handle('onSelectionChange');
         });
     };
 

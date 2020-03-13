@@ -1,11 +1,14 @@
 import Range from './range'
 
+let editorId = 0;
+
 export default function createEditorStub(content = '', pos = 0, syntax = 'html'): TextEditor {
     let range = new Range(pos, pos);
 
     return {
         document: {
             syntax,
+            uri: 'editor' + (editorId++),
             get length(): number {
                 return content.length;
             }

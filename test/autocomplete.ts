@@ -5,7 +5,7 @@ import { deepStrictEqual as deepEqual, strictEqual as equal } from 'assert';
 import Range from './assets/range';
 import createSimulator from './assets/simutator';
 import { getHTMLContext, getCSSContext } from '../src/autocomplete/context';
-import { startTracking, getTracker } from '../src/autocomplete/tracker';
+import { startTracking, getTracker, handleChange, handleSelectionChange } from '../src/autocomplete/tracker';
 
 function read(fileName: string): string {
     const absPath = path.resolve(__dirname, fileName);
@@ -105,7 +105,10 @@ describe('Autocomplete provider', () => {
     });
 
     it.only('abbreviation tracker', () => {
-        const { editor, content } = createSimulator('before d after', 8)
+        const { editor, content, input } = createSimulator('before d after', 8, {
+            onChange: handleChange,
+            onSelectionChange: handleSelectionChange
+        });
         const abbr = () => {
             const tracker = getTracker(editor);
             return tracker
@@ -116,5 +119,12 @@ describe('Autocomplete provider', () => {
         startTracking(editor, 7, 8);
         equal(abbr(), 'd');
         equal(content(), 'before d after');
+
+        // Append characters
+        input('i');
+        input('v');
+        equal(abbr(), 'div');
+        equal(content(), 'before div after');
+
     });
 });
