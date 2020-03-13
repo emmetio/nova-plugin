@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { AbbreviationContext } from 'emmet';
-import { deepStrictEqual as deepEqual } from 'assert';
+import { deepStrictEqual as deepEqual, strictEqual as equal } from 'assert';
+import Range from './assets/range';
+import createSimulator from './assets/simutator';
 import { getHTMLContext, getCSSContext } from '../src/autocomplete/context';
+import { startTracking, getTracker } from '../src/autocomplete/tracker';
 
 function read(fileName: string): string {
     const absPath = path.resolve(__dirname, fileName);
@@ -18,6 +21,9 @@ function context(name: string, attributes?: { [name: string]: string }): Abbrevi
 }
 
 describe('Autocomplete provider', () => {
+    before(() => global['Range'] = Range);
+    after(() => delete global['Range']);
+
     it('HTML context', () => {
         const html = read('./samples/embedded-style.html');
 
@@ -96,5 +102,19 @@ describe('Autocomplete provider', () => {
 
         // Not inside selector
         deepEqual(getCSSContext(scss, 128), undefined);
+    });
+
+    it.only('abbreviation tracker', () => {
+        const { editor, content } = createSimulator('before d after', 8)
+        const abbr = () => {
+            const tracker = getTracker(editor);
+            return tracker
+                ? editor.getTextInRange(new Range(tracker.range[0], tracker.range[1]))
+                : undefined;
+        };
+
+        startTracking(editor, 7, 8);
+        equal(abbr(), 'd');
+        equal(content(), 'before d after');
     });
 });
