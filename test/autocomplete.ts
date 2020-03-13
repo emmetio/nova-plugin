@@ -105,7 +105,7 @@ describe('Autocomplete provider', () => {
     });
 
     it.only('abbreviation tracker', () => {
-        const { editor, content, input } = createSimulator('before d after', 8, {
+        const { editor, content, input, select } = createSimulator('before d after', 8, {
             onChange: handleChange,
             onSelectionChange: handleSelectionChange
         });
@@ -126,5 +126,18 @@ describe('Autocomplete provider', () => {
         equal(abbr(), 'div');
         equal(content(), 'before div after');
 
+        // Insert paired character
+        input('[');
+        equal(abbr(), 'div[]');
+        equal(content(), 'before div[] after');
+
+        // Enter attribute, caret should be inside `[]`
+        input('title');
+        equal(abbr(), 'div[title]');
+
+        // Prepend
+        select(7);
+        'main>'.split('').forEach(input);
+        equal(abbr(), 'main>div[title]');
     });
 });

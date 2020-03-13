@@ -8,6 +8,12 @@ interface EventHandlers {
     onSelectionChange?: EditorCallback;
 }
 
+const pairs = {
+    '[': ']',
+    '(': ')',
+    '{': '}'
+};
+
 /**
  * Creates environment for simulating user input in editor
  */
@@ -34,6 +40,9 @@ export default function createSimulator(text = '', pos = 0, callbacks?: EventHan
 
             e.insert(start, text);
             move(start + text.length);
+            if (text in pairs) {
+                e.insert(start + text.length, pairs[text]);
+            }
             handle('onChange');
             handle('onSelectionChange');
         });
