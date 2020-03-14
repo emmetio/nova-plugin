@@ -104,7 +104,7 @@ describe('Autocomplete provider', () => {
         deepEqual(getCSSContext(scss, 128), undefined);
     });
 
-    it.only('abbreviation tracker', () => {
+    it('abbreviation tracker', () => {
         const { editor, content, input, select } = createSimulator('before d after', 8, {
             onChange: handleChange,
             onSelectionChange: handleSelectionChange
@@ -139,5 +139,18 @@ describe('Autocomplete provider', () => {
         select(7);
         'main>'.split('').forEach(input);
         equal(abbr(), 'main>div[title]');
+
+        // Type outside: reset abbreviation tracking
+        select(23);
+        input('a');
+        equal(abbr(), undefined);
+        equal(content(), 'before main>div[title] aafter');
+
+        startTracking(editor, 7, 22);
+        equal(abbr(), 'main>div[title]');
+        select(0);
+        input('b');
+        equal(abbr(), undefined);
+        equal(content(), 'bbefore main>div[title] aafter');
     });
 });
