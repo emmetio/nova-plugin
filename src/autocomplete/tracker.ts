@@ -1,9 +1,9 @@
 import { isSupported } from '../syntax';
 import { getCaret } from '../utils';
 
-type TextRange = [number, number];
+export type TextRange = [number, number];
 
-export interface AbbreviationTracker {
+export interface Tracker {
     /** Last tracked caret position */
     lastPos: number;
 
@@ -14,7 +14,7 @@ export interface AbbreviationTracker {
     range: TextRange;
 }
 
-const cache = new Map<string, AbbreviationTracker>();
+const cache = new Map<string, Tracker>();
 
 export function handleChange(editor: TextEditor) {
     const tracker = getTracker(editor);
@@ -32,6 +32,8 @@ export function handleChange(editor: TextEditor) {
 
     const length = editor.document.length;
     const pos = getCaret(editor);
+    console.log('handle change at ' + pos);
+
     const delta = length - tracker.lastLength;
 
     tracker.lastLength = length;
@@ -70,7 +72,7 @@ export function handleSelectionChange(editor: TextEditor, caret = getCaret(edito
 /**
  * Returns current abbreviation tracker for given editor, if available
  */
-export function getTracker(editor: TextEditor): AbbreviationTracker | undefined {
+export function getTracker(editor: TextEditor): Tracker | undefined {
     const key = getId(editor);
     return allowTracking(editor) ? cache.get(key) : void 0;
 }
@@ -81,12 +83,14 @@ export function getTracker(editor: TextEditor): AbbreviationTracker | undefined 
  * @param start Location of abbreviation start
  * @param pos Current caret position, must be greater that `start`
  */
-export function startTracking(editor: TextEditor, start: number, pos: number) {
-    cache.set(getId(editor), {
+export function startTracking(editor: TextEditor, start: number, pos: number): Tracker {
+    const key = getId(editor);
+    cache.set(key, {
         lastPos: pos,
         lastLength: editor.document.length,
         range: [start, pos]
     });
+    return cache.get(key)!;
 }
 
 /**
@@ -97,16 +101,16 @@ export function stopTracking(editor: TextEditor) {
 }
 
 /**
+ * Check if abbreviation tracking is allowed in given editor
+ */
+export function allowTracking(editor: TextEditor): boolean {
+    const syntax = editor.document.syntax;
+    return syntax ? isSupported(syntax) : false;
+}
+
+/**
  * Returns unique identifier of editor’s underlying document
  */
 function getId(editor: TextEditor): string {
     return editor.document.uri;
-}
-
-/**
- * Check if abbreviation tracking is allowed in given editor
- */
-function allowTracking(editor: TextEditor): boolean {
-    const syntax = editor.document.syntax;
-    return syntax ? isSupported(syntax) : false;
 }

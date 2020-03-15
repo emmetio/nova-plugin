@@ -1,18 +1,13 @@
 import createProvider from './provider';
-import { getCaret } from '../utils';
 
 export default function addAutocomplete() {
-    nova.assistants.registerCompletionAssistant('*', createProvider());
+    const provider = createProvider();
+    nova.assistants.registerCompletionAssistant('*', provider);
     nova.workspace.onDidAddTextEditor(editor => {
-        console.log(editor);
-
-        if (TextEditor.isTextEditor(editor)) {
-            console.log('Its a text editor', editor.onDidChangeSelection, editor['onDidSelectionChange'], editor['onDidSelectionChanged']);
-            editor.onDidChangeSelection(handleSelectionChange);
-        }
+        editor.onDidChange(provider.handleChange);
+        // TODO uncomment when Nova devs fix bug:
+        // https://dev.panic.com/panic/nova-issues/issues/685
+        // editor.onDidChangeSelection(provider.handleSelectionChange);
     });
-}
 
-function handleSelectionChange(editor: TextEditor) {
-    console.log('sel pos', getCaret(editor));
 }
