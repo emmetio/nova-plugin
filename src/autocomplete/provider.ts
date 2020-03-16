@@ -8,6 +8,7 @@ import {
 } from './tracker';
 import { toRange } from '../utils';
 import getMarkupSnippetCompletions from './markup-snippets';
+import getStylesheetSnippetCompletions from './stylesheet-snippets';
 
 interface EmmetCompletionAssistant extends CompletionAssistant {
     handleChange(editor: TextEditor): void;
@@ -89,8 +90,11 @@ function startAbbreviationTracking(editor: TextEditor, ctx: CompletionContext): 
     const prefix = ctx.line.slice(-2);
     const pos = ctx.position;
 
+    console.log('test', prefix);
     if (reWordBound.test(prefix)) {
         const abbrCtx = getAbbreviationContext(editor, pos);
+        console.log('ctx', JSON.stringify(abbrCtx));
+
         if (abbrCtx) {
             let start = pos - 1;
             let end = pos;
@@ -180,11 +184,9 @@ function createExpandAbbreviationCompletion(editor: TextEditor, tracker: EmmetTr
 function getSnippetsCompletions(editor: TextEditor, tracker: EmmetTracker, ctx: CompletionContext): CompletionItem[] {
     const abbr = editor.getTextInRange(toRange(tracker.range));
     const pos = ctx.position - tracker.range[0];
-    let result: CompletionItem[] = [];
-
-    if (!isCSS(tracker.syntax)) {
-        result = getMarkupSnippetCompletions(abbr, pos, tracker.syntax);
-    }
+    const result: CompletionItem[] = isCSS(tracker.syntax)
+        ? getStylesheetSnippetCompletions(abbr, pos, tracker.syntax)
+        : getMarkupSnippetCompletions(abbr, pos, tracker.syntax);
 
     console.log('Snippet completions: ' + result.length);
     return result;

@@ -36,6 +36,8 @@ export default function getAbbreviationContext(editor: TextEditor, pos: number):
     }
 
     if (isCSS(syntax)) {
+        console.log('get css context');
+
         const context = getCSSContext(getContent(editor), pos);
         if (context && syntax) {
             return { syntax, context };
