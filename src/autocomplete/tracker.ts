@@ -32,8 +32,6 @@ export function handleChange(editor: TextEditor) {
 
     const length = editor.document.length;
     const pos = getCaret(editor);
-    console.log('handle change at ' + pos);
-
     const delta = length - tracker.lastLength;
 
     tracker.lastLength = length;

@@ -65,8 +65,7 @@ describe('Autocomplete provider', () => {
 
         // Inside <style> tag, inside selector block
         deepEqual(getHTMLContext(html, 212), {
-            syntax: 'css',
-            context: context('')
+            syntax: 'css'
         });
 
         // Outside selector block

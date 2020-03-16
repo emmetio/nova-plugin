@@ -19,7 +19,7 @@ export type EmmetTracker = Tracker & ActivationContext & {
     options: Partial<Options>
 };
 
-const reWordBound = /^[\s>]?[a-zA-Z.#\[\(]$/;
+const reWordBound = /^[\s>;]?[a-zA-Z.#\[\(]$/;
 const pairs = {
     '{': '}',
     '[': ']',
@@ -90,10 +90,9 @@ function startAbbreviationTracking(editor: TextEditor, ctx: CompletionContext): 
     const prefix = ctx.line.slice(-2);
     const pos = ctx.position;
 
-    console.log('test', prefix);
     if (reWordBound.test(prefix)) {
-        const abbrCtx = getAbbreviationContext(editor, pos);
-        console.log('ctx', JSON.stringify(abbrCtx));
+        // Get abbreviation context at the beginning of word bound
+        const abbrCtx = getAbbreviationContext(editor, pos - 1);
 
         if (abbrCtx) {
             let start = pos - 1;
@@ -164,7 +163,6 @@ function previewField(index: number, placeholder: string) {
 function createExpandAbbreviationCompletion(editor: TextEditor, tracker: EmmetTracker, config: UserConfig): CompletionItem {
     const abbrRange = toRange(tracker.range);
     const abbr = editor.getTextInRange(abbrRange);
-    console.log(`Expand "${abbr}"`);
 
     const snippet = expand(abbr, config);
     const preview = expand(abbr, getPreviewConfig(config));

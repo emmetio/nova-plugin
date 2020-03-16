@@ -28,19 +28,23 @@ interface Tag {
  * This method ensures that given `pos` is inside location allowed for expanding
  * abbreviations and returns context data about it
  */
-export default function getAbbreviationContext(editor: TextEditor, pos: number): ActivationContext | void {
+export default function getAbbreviationContext(editor: TextEditor, pos: number): ActivationContext | undefined {
     const syntax = editor.document.syntax;
 
     if (isHTML(syntax)) {
         return getHTMLContext(getContent(editor), pos, isXML(syntax));
     }
 
-    if (isCSS(syntax)) {
-        console.log('get css context');
-
+    if (syntax && isCSS(syntax)) {
         const context = getCSSContext(getContent(editor), pos);
-        if (context && syntax) {
-            return { syntax, context };
+        if (context) {
+            return {
+                syntax,
+                // Pass context only if it contains name (e.g. in context of CSS property).
+                // Otherwise non-empty context indicates that it’s possible to
+                // expand CSS abbreviation here
+                context: context.name ? context : void 0
+            };
         }
     }
 }
@@ -122,14 +126,20 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Activa
 
         if (lastTag.name === 'style' && pos >= lastTag.end) {
             // Location is inside <style> tag: we should detect if caret is in
-            // proper  stylesheet context, otherwise completions are prohibited
+            // proper stylesheet context, otherwise completions are prohibited
             context = getCSSContext(code.slice(lastTag.end, offset), pos - lastTag.end);
             if (!context) {
-                result = null;
-            } else {
-                result.syntax = getSyntaxForStyleTag(code, lastTag);
+                return;
             }
-        } else if (!isCSS(result.syntax)) {
+            result.syntax = getSyntaxForStyleTag(code, lastTag);
+            if (context.name) {
+                result.context = context;
+            }
+
+            return result;
+        }
+
+        if (!isCSS(result.syntax)) {
             context = createHTMLAbbreviationContext(code, lastTag);
         }
 
