@@ -1,22 +1,24 @@
 import { UserConfig, Options } from 'emmet';
 import { extract, expand, getOutputOptions } from '../emmet';
-import { getSyntaxType } from '../syntax';
+import { getSyntaxType, isCSS } from '../syntax';
 import getAbbreviationContext, { ActivationContext } from './context';
 import {
     handleChange, handleSelectionChange, allowTracking,
     startTracking, stopTracking, getTracker, Tracker
 } from './tracker';
 import { toRange } from '../utils';
+import getMarkupSnippetCompletions from './markup-snippets';
 
 interface EmmetCompletionAssistant extends CompletionAssistant {
     handleChange(editor: TextEditor): void;
     handleSelectionChange(editor: TextEditor): void;
 }
 
-type EmmetTracker = Tracker & ActivationContext & {
+export type EmmetTracker = Tracker & ActivationContext & {
     options: Partial<Options>
 };
 
+const reWordBound = /^[\s>]?[a-zA-Z.#\[\(]$/;
 const pairs = {
     '{': '}',
     '[': ']',
@@ -27,7 +29,7 @@ export default function createProvider(): EmmetCompletionAssistant {
     return {
         provideCompletionItems(editor, ctx) {
             const t = measureTime();
-            const result: CompletionItem[] = [];
+            let result: CompletionItem[] = [];
             let tracker = getTracker(editor) as EmmetTracker | undefined;
             console.log(`cmpl ${ctx.position}, reason ${ctx.reason}, has tracker? ${!!tracker}`);
 
@@ -51,7 +53,7 @@ export default function createProvider(): EmmetCompletionAssistant {
                 const config = getConfig(editor, tracker);
                 try {
                     result.push(createExpandAbbreviationCompletion(editor, tracker, config));
-                    // TODO add snippet completions
+                    result = result.concat(getSnippetsCompletions(editor, tracker, ctx));
                 } catch (err) {
                     // Failed due to invalid abbreviation, decide what to do with
                     // tracker: dispose it if caret is at the abbreviation end
@@ -87,7 +89,7 @@ function startAbbreviationTracking(editor: TextEditor, ctx: CompletionContext): 
     const prefix = ctx.line.slice(-2);
     const pos = ctx.position;
 
-    if (/^[\s>]?[a-zA-Z.#\[\(]$/.test(prefix)) {
+    if (reWordBound.test(prefix)) {
         const abbrCtx = getAbbreviationContext(editor, pos);
         if (abbrCtx) {
             let start = pos - 1;
@@ -170,6 +172,22 @@ function createExpandAbbreviationCompletion(editor: TextEditor, tracker: EmmetTr
     completion.documentation = preview;
 
     return completion;
+}
+
+/**
+ * Returns list of raw snippet completions
+ */
+function getSnippetsCompletions(editor: TextEditor, tracker: EmmetTracker, ctx: CompletionContext): CompletionItem[] {
+    const abbr = editor.getTextInRange(toRange(tracker.range));
+    const pos = ctx.position - tracker.range[0];
+    let result: CompletionItem[] = [];
+
+    if (!isCSS(tracker.syntax)) {
+        result = getMarkupSnippetCompletions(abbr, pos, tracker.syntax);
+    }
+
+    console.log('Snippet completions: ' + result.length);
+    return result;
 }
 
 function measureTime() {
