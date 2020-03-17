@@ -48,10 +48,19 @@ export const knownTags = [
 ];
 
 /**
+ * Cache for storing internal Emmet data.
+ * TODO reset whenever user settings are changed
+ */
+let cache = {};
+
+/**
  * Expands given abbreviation into code snippet
  */
 export function expand(abbr: string, config?: UserConfig) {
     // TODO get global options from config
+    if (config && !config.cache) {
+        config = { ...config, cache };
+    }
     return expandAbbreviation(abbr, config);
 }
 
