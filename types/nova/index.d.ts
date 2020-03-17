@@ -93,7 +93,7 @@ declare class Disposable {
      * Returns `true` if the argument provided is a disposable object which
      * responds to `dispose()`.
      */
-    static isDisposable(object: any): boolean;
+    static isDisposable(object: any): object is Disposable;
 
     /**
      * Relinquishes the object’s resources, which may include stopping a listener,
@@ -151,7 +151,7 @@ declare class TextEditor {
      * returning `false`. This can be most useful for a `Commands` handler function,
      * which can receive either a `Workspace` or `TextEditor` instance as its first argument.
      */
-    static isTextEditor(object: any): boolean;
+    static isTextEditor(object: any): object is TextEditor;
 
     /** The `TextDocument` object backing the editor. */
     readonly document: TextDocument;

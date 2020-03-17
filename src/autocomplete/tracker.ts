@@ -16,7 +16,7 @@ export interface Tracker {
 
 const cache = new Map<string, Tracker>();
 
-export function handleChange(editor: TextEditor) {
+export function handleChange(editor: TextEditor): Tracker | undefined {
     const tracker = getTracker(editor);
     if (!tracker) {
         return;
@@ -54,9 +54,11 @@ export function handleChange(editor: TextEditor) {
         }
     }
 
+    // Ensure range is in valid state
     if (range[1] <= range[0]) {
-        // Ensure range is in valid state
         stopTracking(editor);
+    } else {
+        return tracker;
     }
 }
 

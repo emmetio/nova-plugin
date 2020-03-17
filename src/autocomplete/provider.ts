@@ -6,7 +6,7 @@ import {
     handleChange, handleSelectionChange, allowTracking,
     startTracking, stopTracking, getTracker, Tracker
 } from './tracker';
-import { toRange } from '../utils';
+import { toRange, getCaret } from '../utils';
 import getMarkupSnippetCompletions from './markup-snippets';
 import getStylesheetSnippetCompletions from './stylesheet-snippets';
 
@@ -32,7 +32,7 @@ export default function createProvider(): EmmetCompletionAssistant {
             const t = measureTime();
             let result: CompletionItem[] = [];
             let tracker = getTracker(editor) as EmmetTracker | undefined;
-            console.log(`cmpl ${ctx.position}, reason ${ctx.reason}, has tracker? ${!!tracker}`);
+            console.log('>> has tracker?', !!tracker );
 
             if (!tracker) {
                 if (ctx.reason === CompletionReason.Invoke) {
@@ -44,9 +44,12 @@ export default function createProvider(): EmmetCompletionAssistant {
                     tracker = startAbbreviationTracking(editor, ctx);
                     t.mark('Start tracking');
                 }
+            } else {
+                handleChange(editor);
+                t.mark(`Tracking "${abbrFromTracker(editor, tracker)}", ctx pos: ${ctx.position}, caret: ${getCaret(editor)}`);
             }
 
-            if (tracker) {
+            if (tracker && validateAbbreviation(editor, tracker)) {
                 // Validate abbreviation: show completion only if it’s a valid
                 // abbreviation. If it’s invalid, check where caret was: if it’s
                 // inside abbreviation then give user a chance to fix it, otherwise
@@ -54,26 +57,40 @@ export default function createProvider(): EmmetCompletionAssistant {
                 const config = getConfig(editor, tracker);
                 try {
                     result.push(createExpandAbbreviationCompletion(editor, tracker, config));
+                    t.mark('Create abbreviation completion');
                     result = result.concat(getSnippetsCompletions(editor, tracker, ctx));
+                    t.mark('Create snippet completions');
                 } catch (err) {
                     // Failed due to invalid abbreviation, decide what to do with
                     // tracker: dispose it if caret is at the abbreviation end
                     // or give user a chance to fix it
-                    console.log('abbreviation is invalid');
+                    t.mark('Fail abbreviation expand');
+                    const abbrRange = toRange(tracker.range);
+                    const abbr = editor.getTextInRange(abbrRange);
+                    console.log(`abbreviation is invalid: "${abbr}"`);
                     if (ctx.position === tracker.range[1]) {
                         console.log('stop tracking');
                         stopTracking(editor);
                     }
                 }
-
-                t.mark('Create abbreviation completion');
+            } else if (tracker) {
+                t.mark('Cancel tracking');
+                stopTracking(editor);
             }
 
             console.log(t.dump());
-            console.log('return items: ' + result.length);
             return result;
         },
-        handleChange,
+        handleChange(editor) {
+            const tracker = handleChange(editor);
+            if (tracker) {
+                console.log(`>> Handle change for "${abbrFromTracker(editor, tracker)}"`);
+                if (!validateAbbreviation(editor, tracker as EmmetTracker)) {
+                    console.log('Cancel tracking on change');
+                    stopTracking(editor);
+                }
+            }
+        },
         handleSelectionChange
     };
 }
@@ -186,8 +203,38 @@ function getSnippetsCompletions(editor: TextEditor, tracker: EmmetTracker, ctx: 
         ? getStylesheetSnippetCompletions(abbr, pos, tracker.syntax)
         : getMarkupSnippetCompletions(abbr, pos, tracker.syntax);
 
-    console.log('Snippet completions: ' + result.length);
     return result;
+}
+
+/**
+ * Returns abbreviation tracked by given `tracker`
+ */
+function abbrFromTracker(editor: TextEditor, tracker: Tracker): string {
+    const abbrRange = toRange(tracker.range);
+    return editor.getTextInRange(abbrRange);
+}
+
+/**
+ * Validates abbreviation abbreviation in given tracker: returns `true` if tracker
+ * can be used (but it’s not necessary its abbreviation is valid), `false` otherwise
+ */
+function validateAbbreviation(editor: TextEditor, tracker: EmmetTracker) {
+    // Check if abbreviation is still valid
+    const abbr = abbrFromTracker(editor, tracker);
+    // Fast check for common cases:
+    // – abbreviation expanded (HTML only)
+    // – entered word bound
+    // – has newline
+    if (abbr[0] === '<' || /[\r\n]/.test(abbr) || /[\s;]$/.test(abbr)) {
+        return false;
+    }
+
+    if (isCSS(tracker.syntax) && abbr.includes(':')) {
+        // Expanded abbreviation in CSS
+        return false;
+    }
+
+    return true;
 }
 
 function measureTime() {
