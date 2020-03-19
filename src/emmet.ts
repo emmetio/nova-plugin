@@ -1,11 +1,11 @@
-import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation, Options } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
-import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
+import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isHTML, isCSS, isSupported } from './syntax';
+import { isXML, syntaxInfo, isCSS, isSupported } from './syntax';
 import { getContent, toRange, isQuotedString } from './utils';
-import { getCSSContext as getCSSContext2, getHTMLContext } from './autocomplete/context';
+import { getCSSContext, getHTMLContext } from './autocomplete/context';
 
 interface EvaluatedMath {
     start: number;
@@ -21,10 +21,6 @@ export interface ContextTag extends AbbreviationContext {
 
 export type NovaCSSProperty = CSSProperty<Range>;
 export type NovaCSSSection = CSSSection<NovaCSSProperty>;
-
-interface NovaExtractedAbbreviation extends ExtractedAbbreviation {
-    options: Partial<ExtractOptions>;
-}
 
 export interface ExtractedAbbreviationWithContext extends ExtractedAbbreviation {
     context?: AbbreviationContext;
@@ -71,52 +67,6 @@ export function expand(abbr: string, config?: UserConfig) {
 }
 
 /**
- * Extracts abbreviation from given location in editor.
- * @param editor
- * @param loc Location in editor content (`number`) from which abbreviation should
- * be expanded
- */
-export function extract(editor: TextEditor, loc: number | [number, number] | Range, opt?: Partial<ExtractOptions>): NovaExtractedAbbreviation | undefined {
-    let pos = -1;
-    let range: Range | undefined;
-
-    if (Array.isArray(loc)) {
-        loc = toRange(loc);
-    }
-
-    if (typeof loc === 'number') {
-        pos = loc;
-        range = editor.getLineRangeForRange(new Range(pos, pos));
-    } else {
-        pos = loc.end;
-        range = loc;
-    }
-
-    const text = editor.getTextInRange(range);
-    const { start } = range;
-
-    if (!opt) {
-        opt = getOptions(editor, pos);
-    }
-
-    // No look-ahead for stylesheets: they do not support brackets syntax
-    // and enabled look-ahead produces false matches
-    opt.lookAhead = opt.type !== 'stylesheet';
-
-    // TODO add prefix for JSX syntax
-
-    const abbrData = extractAbbreviation(text, pos - start, opt) as NovaExtractedAbbreviation;
-    if (abbrData) {
-        abbrData.start += start;
-        abbrData.end += start;
-        abbrData.location += start;
-        abbrData.options = opt;
-
-        return abbrData;
-    }
-}
-
-/**
  * Extracts abbreviation from given source code by detecting actual syntax context.
  * For example, if host syntax is HTML, it tries to detect if location is inside
  * embedded CSS.
@@ -124,7 +74,7 @@ export function extract(editor: TextEditor, loc: number | [number, number] | Ran
  * It also detects if abbreviation is allowed at given location: HTML tags,
  * CSS selectors may not contain abbreviations.
  */
-export function extractWithContext(code: string, pos: number, hostSyntax = 'html'): ExtractedAbbreviationWithContext | undefined {
+export function extract(code: string, pos: number, hostSyntax = 'html'): ExtractedAbbreviationWithContext | undefined {
     if (!hostSyntax || !isSupported(hostSyntax)) {
         // Unknown host syntax: we can’t properly detect abbreviation context,
         // fallback to basic markup abbreviation
@@ -135,11 +85,12 @@ export function extractWithContext(code: string, pos: number, hostSyntax = 'html
     }
 
     const ctx = isCSS(hostSyntax)
-        ? getCSSContext2(code, pos)
-        : getHTMLContext(code, pos, isXML(hostSyntax));
+        ? getCSSContext(code, pos)
+        : getHTMLContext(code, pos, { xml: isXML(hostSyntax) });
 
         if (ctx) {
             const abbrData = extractAbbreviation(code, pos, {
+                // TODO add prefix for JSX syntax
                 lookAhead: !isCSS(ctx.syntax),
                 type: isCSS(ctx.syntax) ? 'stylesheet' : 'markup'
             }) as ExtractedAbbreviationWithContext;
@@ -262,21 +213,9 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
 }
 
 /**
- * Returns context CSS property name, if any
- */
-export function getCSSContext(editor: TextEditor, pos: number): AbbreviationContext | undefined {
-    const matched = matchCSS(getContent(editor), pos);
-    if (matched && matched.type === 'property') {
-        return {
-            name: editor.getTextInRange(new Range(matched.start, matched.bodyStart)).replace(/:\s*$/, '')
-        };
-    }
-}
-
-/**
  * Returns Emmet options for given character location in editor
  */
-export function getOptions(editor: TextEditor, pos: number, withContext?: boolean): UserConfig {
+export function getOptions(editor: TextEditor, pos: number): UserConfig {
     const info = syntaxInfo(editor, pos);
     const config = info as UserConfig;
     if (!config.syntax) {
@@ -285,12 +224,6 @@ export function getOptions(editor: TextEditor, pos: number, withContext?: boolea
 
     // TODO allow user to pick self-close style for HTML: `<br>` or `<br />`
     config.options = getOutputOptions(editor, pos, info.inline);
-
-    // Get element context
-    if (withContext) {
-        attachContext(editor, pos, config);
-    }
-
     return config;
 }
 
@@ -306,19 +239,6 @@ export function getOutputOptions(editor: TextEditor, pos = editor.selectedRange.
         'output.format': !inline,
         'output.newline': editor.document.eol
     };
-}
-
-/**
- * Attaches context for given Emmet config
- */
-export function attachContext(editor: TextEditor, pos: number, config: UserConfig): UserConfig {
-    if (config.type === 'stylesheet') {
-        config.context = getCSSContext(editor, pos);
-    } else if (config.syntax && isHTML(config.syntax)) {
-        config.context = getTagContext(editor, pos, isXML(config.syntax));
-    }
-
-    return config
 }
 
 /**

@@ -1,4 +1,4 @@
-import { expand, extractWithContext, getOptions, ExtractedAbbreviationWithContext } from '../emmet';
+import { expand, extract, getOptions, ExtractedAbbreviationWithContext } from '../emmet';
 import { getCaret, replaceWithSnippet, getContent } from '../utils';
 import { isSupported } from '../syntax';
 
@@ -10,11 +10,11 @@ nova.commands.register('emmet.expand-abbreviation', editor => {
     // For optimization purposes, use full content scan to extract abbreviation
     // with supported scope, use current line for unknown
     if (syntax && isSupported(syntax)) {
-        abbr = extractWithContext(getContent(editor), caret, syntax);
+        abbr = extract(getContent(editor), caret, syntax);
     } else {
         const lineRange = editor.getLineRangeForRange(new Range(caret, caret));
         const line = editor.getTextInRange(lineRange);
-        abbr = extractWithContext(line, caret - lineRange.start, syntax);
+        abbr = extract(line, caret - lineRange.start, syntax);
         if (abbr) {
             abbr.location += lineRange.start;
             abbr.start += lineRange.start;

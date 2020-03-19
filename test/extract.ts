@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { deepStrictEqual as deepEqual } from 'assert';
-import { extractWithContext as extract } from '../src/emmet';
+import { extract } from '../src/emmet';
 
 function read(fileName: string): string {
     const absPath = path.resolve(__dirname, fileName);

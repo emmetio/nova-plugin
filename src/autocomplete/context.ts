@@ -9,6 +9,11 @@ export interface ActivationContext extends SyntaxContext {
     options: Partial<Options>;
 }
 
+interface HTMLContextOptions {
+    xml?: boolean;
+    skipCSS?: boolean;
+}
+
 interface SyntaxContext {
     syntax: string;
     context?: AbbreviationContext;
@@ -39,7 +44,7 @@ export default function getAbbreviationContext(editor: TextEditor, pos: number):
     if (syntax && isSupported(syntax)) {
         const context = isCSS(syntax)
             ? getCSSContext(getContent(editor), pos)
-            : getHTMLContext(getContent(editor), pos, isXML(syntax));
+            : getHTMLContext(getContent(editor), pos, { xml: isXML(syntax) });
 
         if (context) {
             return {
@@ -54,7 +59,7 @@ export default function getAbbreviationContext(editor: TextEditor, pos: number):
  * Returns HTML autocomplete activation context for given location in source code,
  * if available
  */
-export function getHTMLContext(code: string, pos: number, xml?: boolean): SyntaxContext | undefined {
+export function getHTMLContext(code: string, pos: number, opt: HTMLContextOptions = {}): SyntaxContext | undefined {
     // By default, we assume that caret is in proper location and if it’s not,
     // we’ll reset this value
     let result: SyntaxContext | null = { syntax: 'html' };
@@ -63,7 +68,7 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Syntax
     // for storing tag data to reduce memory pressure and improve performance
     const pool: Tag[] = [];
     const stack: Tag[] = [];
-    const options = createOptions({ xml, allTokens: true });
+    const options = createOptions({ xml: opt.xml, allTokens: true });
     let offset = 0;
 
     scan(code, (name, type, start, end) => {
@@ -95,7 +100,7 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Syntax
             // Inside opening or self-closed tag: completions prohibited by default
             // except in `style` attribute
             const tag = code.slice(start, end);
-            if (tag.includes('style')) {
+            if (!opt.skipCSS && tag.includes('style')) {
                 for (const attr of attributes(tag, name)) {
                     if (attr.name === 'style' && attr.value != null) {
                         const [valueStart, valueEnd] = attributeValueRange(tag, attr, start);
@@ -124,7 +129,7 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Syntax
     if (result && stack.length) {
         const lastTag = last(stack)!;
 
-        if (lastTag.name === 'style' && pos >= lastTag.end) {
+        if (!opt.skipCSS && lastTag.name === 'style' && pos >= lastTag.end) {
             // Location is inside <style> tag: we should detect if caret is in
             // proper stylesheet context, otherwise completions are prohibited
             const cssContext = getCSSContext(code.slice(lastTag.end, offset), pos - lastTag.end);
