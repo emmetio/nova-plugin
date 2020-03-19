@@ -3,8 +3,9 @@ import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isHTML } from './syntax';
+import { isXML, syntaxInfo, isHTML, isCSS, isSupported } from './syntax';
 import { getContent, toRange, isQuotedString } from './utils';
+import { getCSSContext as getCSSContext2, getHTMLContext } from './autocomplete/context';
 
 interface EvaluatedMath {
     start: number;
@@ -23,6 +24,11 @@ export type NovaCSSSection = CSSSection<NovaCSSProperty>;
 
 interface NovaExtractedAbbreviation extends ExtractedAbbreviation {
     options: Partial<ExtractOptions>;
+}
+
+export interface ExtractedAbbreviationWithContext extends ExtractedAbbreviation {
+    context?: AbbreviationContext;
+    inline?: boolean;
 }
 
 export const knownTags = [
@@ -108,6 +114,43 @@ export function extract(editor: TextEditor, loc: number | [number, number] | Ran
 
         return abbrData;
     }
+}
+
+/**
+ * Extracts abbreviation from given source code by detecting actual syntax context.
+ * For example, if host syntax is HTML, it tries to detect if location is inside
+ * embedded CSS.
+ *
+ * It also detects if abbreviation is allowed at given location: HTML tags,
+ * CSS selectors may not contain abbreviations.
+ */
+export function extractWithContext(code: string, pos: number, hostSyntax = 'html'): ExtractedAbbreviationWithContext | undefined {
+    if (!hostSyntax || !isSupported(hostSyntax)) {
+        // Unknown host syntax: we can’t properly detect abbreviation context,
+        // fallback to basic markup abbreviation
+        return extractAbbreviation(code, pos, {
+            lookAhead: true,
+            type: 'markup'
+        }) as ExtractedAbbreviationWithContext;
+    }
+
+    const ctx = isCSS(hostSyntax)
+        ? getCSSContext2(code, pos)
+        : getHTMLContext(code, pos, isXML(hostSyntax));
+
+        if (ctx) {
+            const abbrData = extractAbbreviation(code, pos, {
+                lookAhead: !isCSS(ctx.syntax),
+                type: isCSS(ctx.syntax) ? 'stylesheet' : 'markup'
+            }) as ExtractedAbbreviationWithContext;
+
+            if (abbrData) {
+                abbrData.context = ctx.context;
+                abbrData.inline = !!ctx.inline;
+            }
+
+            return abbrData;
+        }
 }
 
 /**
@@ -241,7 +284,7 @@ export function getOptions(editor: TextEditor, pos: number, withContext?: boolea
     }
 
     // TODO allow user to pick self-close style for HTML: `<br>` or `<br />`
-    config.options = getOutputOptions(editor, info.inline);
+    config.options = getOutputOptions(editor, pos, info.inline);
 
     // Get element context
     if (withContext) {
@@ -251,8 +294,8 @@ export function getOptions(editor: TextEditor, pos: number, withContext?: boolea
     return config;
 }
 
-export function getOutputOptions(editor: TextEditor, inline?: boolean): Partial<Options> {
-    const lineRange = editor.getLineRangeForRange(editor.selectedRange);
+export function getOutputOptions(editor: TextEditor, pos = editor.selectedRange.start, inline?: boolean): Partial<Options> {
+    const lineRange = editor.getLineRangeForRange(new Range(pos, pos));
     const line = editor.getTextInRange(lineRange);
     const indent = line.match(/^\s+/);
 

@@ -111,6 +111,6 @@ export function allowTracking(editor: TextEditor): boolean {
 /**
  * Returns unique identifier of editor’s underlying document
  */
-function getId(editor: TextEditor): string {
+export function getId(editor: TextEditor): string {
     return editor.document.uri;
 }

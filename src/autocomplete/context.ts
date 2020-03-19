@@ -1,10 +1,15 @@
-import { AbbreviationContext } from 'emmet';
+import { AbbreviationContext, Options } from 'emmet';
 import { scan, createOptions, attributes, ElementType, AttributeToken, ScannerOptions } from '@emmetio/html-matcher';
-import matchCSS, { scan as scanCSS, TokenType } from '@emmetio/css-matcher';
+import { scan as scanCSS, TokenType } from '@emmetio/css-matcher';
 import { isQuote, isQuotedString, getContent } from '../utils';
-import { isCSS, isHTML, isXML } from '../syntax';
+import { isCSS, isXML, isSupported } from '../syntax';
+import { getOutputOptions } from '../emmet';
 
-export interface ActivationContext {
+export interface ActivationContext extends SyntaxContext {
+    options: Partial<Options>;
+}
+
+interface SyntaxContext {
     syntax: string;
     context?: AbbreviationContext;
     inline?: boolean;
@@ -31,19 +36,15 @@ interface Tag {
 export default function getAbbreviationContext(editor: TextEditor, pos: number): ActivationContext | undefined {
     const syntax = editor.document.syntax;
 
-    if (isHTML(syntax)) {
-        return getHTMLContext(getContent(editor), pos, isXML(syntax));
-    }
+    if (syntax && isSupported(syntax)) {
+        const context = isCSS(syntax)
+            ? getCSSContext(getContent(editor), pos)
+            : getHTMLContext(getContent(editor), pos, isXML(syntax));
 
-    if (syntax && isCSS(syntax)) {
-        const context = getCSSContext(getContent(editor), pos);
         if (context) {
             return {
-                syntax,
-                // Pass context only if it contains name (e.g. in context of CSS property).
-                // Otherwise non-empty context indicates that it’s possible to
-                // expand CSS abbreviation here
-                context: context.name ? context : void 0
+                ...context,
+                options: getOutputOptions(editor, pos)
             };
         }
     }
@@ -53,16 +54,16 @@ export default function getAbbreviationContext(editor: TextEditor, pos: number):
  * Returns HTML autocomplete activation context for given location in source code,
  * if available
  */
-export function getHTMLContext(code: string, pos: number, xml?: boolean): ActivationContext | undefined {
+export function getHTMLContext(code: string, pos: number, xml?: boolean): SyntaxContext | undefined {
     // By default, we assume that caret is in proper location and if it’s not,
     // we’ll reset this value
-    let result: ActivationContext | null = { syntax: 'html' };
+    let result: SyntaxContext | null = { syntax: 'html' };
 
     // Since we expect large input document, we’ll use pooling technique
     // for storing tag data to reduce memory pressure and improve performance
     const pool: Tag[] = [];
     const stack: Tag[] = [];
-    const options = createOptions({ xml });
+    const options = createOptions({ xml, allTokens: true });
     let offset = 0;
 
     scan(code, (name, type, start, end) => {
@@ -102,9 +103,9 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Activa
                             result!.syntax = 'css';
                             result!.inline = true;
 
-                            const context = createCSSAbbreviationContext(code.slice(valueStart, valueEnd), pos - valueStart);
-                            if (context) {
-                                result!.context = context;
+                            const propName = inlineCSSContext(code.slice(valueStart, valueEnd), pos - valueStart);
+                            if (propName) {
+                                result!.context = { name: propName };
                             }
 
                             return false;
@@ -122,36 +123,31 @@ export function getHTMLContext(code: string, pos: number, xml?: boolean): Activa
 
     if (result && stack.length) {
         const lastTag = last(stack)!;
-        let context: AbbreviationContext | undefined;
 
         if (lastTag.name === 'style' && pos >= lastTag.end) {
             // Location is inside <style> tag: we should detect if caret is in
             // proper stylesheet context, otherwise completions are prohibited
-            context = getCSSContext(code.slice(lastTag.end, offset), pos - lastTag.end);
-            if (!context) {
+            const cssContext = getCSSContext(code.slice(lastTag.end, offset), pos - lastTag.end);
+            if (!cssContext) {
                 return;
             }
             result.syntax = getSyntaxForStyleTag(code, lastTag);
-            if (context.name) {
-                result.context = context;
+            if (cssContext.context) {
+                result.context = cssContext.context;
             }
 
             return result;
         }
 
         if (!isCSS(result.syntax)) {
-            context = createHTMLAbbreviationContext(code, lastTag);
-        }
-
-        if (context && result) {
-            result.context = context;
+            result.context = createHTMLAbbreviationContext(code, lastTag);
         }
     }
 
     return result || void 0;
 }
 
-export function getCSSContext(code: string, pos: number): AbbreviationContext | undefined {
+export function getCSSContext(code: string, pos: number): SyntaxContext | undefined {
     let section = 0;
     let valid = true;
     let name = '';
@@ -163,9 +159,9 @@ export function getCSSContext(code: string, pos: number): AbbreviationContext | 
         }
 
         if (start <= pos && end >= pos) {
-            // Direct hit into token: in this case, the only allowed token here
-            // is property value
-            valid = type === TokenType.PropertyValue;
+            // Direct hit into token: in this case, the only allowed tokens here
+            // are property name and value
+            valid = type === TokenType.PropertyValue || type === TokenType.PropertyName;
             return false;
         }
 
@@ -180,12 +176,16 @@ export function getCSSContext(code: string, pos: number): AbbreviationContext | 
                 name = ''; break;
 
             case TokenType.BlockEnd:
-                section--; break;
+                section--; name = ''; break;
         }
     });
 
     if (valid && (name || section)) {
-        return { name };
+        const result: SyntaxContext = { syntax: 'css' };
+        if (name) {
+            result.context = { name };
+        }
+        return result;
     }
 }
 
@@ -205,17 +205,22 @@ function createHTMLAbbreviationContext(code: string, tag: Tag): AbbreviationCont
     };
 }
 
-function createCSSAbbreviationContext(code: string, pos: number): AbbreviationContext | undefined {
-    const matched = matchCSS(code, pos);
-    if (matched && matched.type === 'property') {
-        // Ensure location is right after name delimiter, e.g. `:`
-        const prefix = code.slice(matched.start, matched.bodyStart).trim();
-        if (pos >= matched.start + prefix.length) {
-            return {
-                name: prefix.replace(/:$/, '')
-            };
+/**
+ * Returns context property name for inline CSS
+ */
+function inlineCSSContext(code: string, pos: number): string | undefined {
+    let name = '';
+    scanCSS(code, (type, start, end, delimiter) => {
+        if (end >= pos) {
+            return false;
         }
-    }
+
+        name = type === TokenType.PropertyName
+            ? code.slice(start, end)
+            : '';
+    });
+
+    return name;
 }
 
 function attributeValueRange(tag: string, attr: AttributeToken, offset = 0): [number, number] {

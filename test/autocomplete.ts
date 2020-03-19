@@ -80,24 +80,32 @@ describe('Autocomplete provider', () => {
 
     it('CSS context', () => {
         const scss = read('./samples/style.scss');
+        const ctx = (context?: {}) => {
+            const result: any = { syntax: 'css' };
+            if (context) {
+                result.context = context;
+            }
+
+            return result;
+        };
 
         // Not inside selector block
         deepEqual(getCSSContext(scss, 9), undefined);
 
         // ...but inside property (variable)
-        deepEqual(getCSSContext(scss, 5), { name: '$foo' });
+        deepEqual(getCSSContext(scss, 5), ctx({ name: '$foo' }));
 
         // Inside selector
         deepEqual(getCSSContext(scss, 12), undefined);
 
         // Inside selector block
-        deepEqual(getCSSContext(scss, 36), { name: '' });
+        deepEqual(getCSSContext(scss, 36), ctx());
 
         // Inside property value
-        deepEqual(getCSSContext(scss, 32), { name: 'padding' });
+        deepEqual(getCSSContext(scss, 32), ctx({ name: 'padding' }));
 
         // Still inside selector block
-        deepEqual(getCSSContext(scss, 125), { name: '' });
+        deepEqual(getCSSContext(scss, 125), ctx());
 
         // Not inside selector
         deepEqual(getCSSContext(scss, 128), undefined);
