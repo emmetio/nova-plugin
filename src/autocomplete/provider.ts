@@ -94,7 +94,8 @@ export default function createProvider(): EmmetCompletionAssistant {
                 stopTracking(editor);
             }
 
-            console.log(t.dump());
+            // console.log(t.dump());
+            t.dump();
             return result;
         },
         handleChange(editor) {
