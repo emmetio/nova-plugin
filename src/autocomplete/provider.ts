@@ -1,6 +1,6 @@
 import { UserConfig } from 'emmet';
 import { expand, extract, getOutputOptions } from '../emmet';
-import { getSyntaxType, isCSS, isSupported } from '../syntax';
+import { getSyntaxType, isCSS, isSupported, isJSX } from '../syntax';
 import getAbbreviationContext, { ActivationContext } from './context';
 import {
     handleChange, handleSelectionChange,
@@ -19,6 +19,8 @@ export interface EmmetTracker extends Tracker {
     abbreviation?: ActivationContext;
 }
 
+const JSXPrefix = '<';
+const tabStop = String.fromCodePoint(0xFFFC);
 const reWordBound = /^[\s>;"']?[a-zA-Z.#!@\[\(]$/;
 const pairs = {
     '{': '}',
@@ -55,7 +57,7 @@ export default function createProvider(): EmmetCompletionAssistant {
 
             if (tracker && !tracker.abbreviation) {
                 // We have tracker but no abbreviation context. Check if abbreviation
-                // if allowed here
+                // is allowed here
                 t.mark('Try to attach context');
                 const ctx = getAbbreviationContext(editor, tracker.range[0]);
                 if (ctx) {
@@ -94,8 +96,8 @@ export default function createProvider(): EmmetCompletionAssistant {
                 stopTracking(editor);
             }
 
-            // console.log(t.dump());
-            t.dump();
+            console.log(t.dump());
+            // t.dump();
             return result;
         },
         handleChange(editor) {
@@ -131,10 +133,18 @@ function startAbbreviationTracking(editor: TextEditor, pos: number): EmmetTracke
     // second must be abbreviation start
     const prefixRange = new Range(Math.max(0, pos - 2), pos);
     const prefix = editor.getTextInRange(prefixRange);
+    let start = -1, end = pos;
 
-    if (reWordBound.test(prefix)) {
-        let start = pos - 1;
-        let end = pos;
+    if (isJSX(editor.document.syntax)) {
+        // In JSX, abbreviations for completions should be prefixed
+        if (prefix.length === 2 && prefix[0] === JSXPrefix && /^[a-zA-Z.#\[\(]$/.test(prefix[1])) {
+            start = pos - 2;
+        }
+    } else if (reWordBound.test(prefix)) {
+        start = pos - 1;
+    }
+
+    if (start >= 0) {
         const lastCh = prefix.slice(-1);
         if (lastCh in pairs) {
             // Check if there’s paired character
@@ -152,7 +162,10 @@ function startAbbreviationTracking(editor: TextEditor, pos: number): EmmetTracke
  * If allowed, tries to extract abbreviation from given completion context
  */
 function extractAbbreviationTracking(editor: TextEditor, ctx: CompletionContext): EmmetTracker | undefined {
-    const abbr = extract(getContent(editor), ctx.position, editor.document.syntax);
+    const { syntax } = editor.document;
+    const abbr = extract(getContent(editor), ctx.position, syntax, {
+        prefix: isJSX(syntax) ? JSXPrefix : ''
+    });
     if (abbr) {
         return startTracking(editor, abbr.start, abbr.end) as EmmetTracker;
     }
@@ -188,7 +201,10 @@ function previewField(index: number, placeholder: string) {
  */
 function createExpandAbbreviationCompletion(editor: TextEditor, tracker: EmmetTracker, config: UserConfig): CompletionItem {
     const abbrRange = toRange(tracker.range);
-    const abbr = editor.getTextInRange(abbrRange);
+    let abbr = editor.getTextInRange(abbrRange);
+    if (isJSX(editor.document.syntax) && abbr[0] === JSXPrefix) {
+        abbr = abbr.slice(1);
+    }
 
     const snippet = expand(abbr, config);
     const preview = expand(abbr, getPreviewConfig(config));
@@ -231,11 +247,12 @@ function abbrFromTracker(editor: TextEditor, tracker: Tracker): string {
 function validateAbbreviation(editor: TextEditor, tracker: EmmetTracker) {
     // Check if abbreviation is still valid
     const abbr = abbrFromTracker(editor, tracker);
+
     // Fast check for common cases:
     // – abbreviation expanded (HTML only)
     // – entered word bound
     // – has newline
-    if (abbr[0] === '<' || /[\r\n]/.test(abbr) || /[\s;]$/.test(abbr)) {
+    if ((abbr[0] === '<' && !isJSX(editor.document.syntax)) || abbr.includes(tabStop) || /[\r\n]/.test(abbr) || /[\s;]$/.test(abbr)) {
         return false;
     }
 
@@ -255,7 +272,7 @@ function validateAbbreviation(editor: TextEditor, tracker: EmmetTracker) {
  */
 export function allowTracking(editor: TextEditor): boolean {
     const syntax = editor.document.syntax;
-    return syntax ? isSupported(syntax) : false;
+    return syntax ? isSupported(syntax) || isJSX(syntax) : false;
 }
 
 function measureTime() {

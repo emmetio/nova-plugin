@@ -7,6 +7,7 @@ const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'sss', 'stylus', 'pos
 const xmlSyntaxes = ['xml', 'xsl', 'jsx'];
 const htmlSyntaxes = ['html'];
 const cssSyntaxes = ['css', 'scss', 'less'];
+const jsxSyntaxes = ['jsx', 'tsx'];
 
 export interface SyntaxInfo {
     type: SyntaxType;
@@ -93,6 +94,13 @@ export function isSupported(syntax: string): boolean {
  */
 export function isCSS(syntax?: string): boolean {
     return syntax ? cssSyntaxes.includes(syntax) : false;
+}
+
+/**
+ * Check if given syntax is JSX dialect
+ */
+export function isJSX(syntax?: string): boolean {
+    return syntax ? jsxSyntaxes.includes(syntax) : false;
 }
 
 /**

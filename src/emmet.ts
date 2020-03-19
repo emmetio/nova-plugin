@@ -1,4 +1,4 @@
-import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options, ExtractOptions } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
@@ -73,15 +73,15 @@ export function expand(abbr: string, config?: UserConfig) {
  *
  * It also detects if abbreviation is allowed at given location: HTML tags,
  * CSS selectors may not contain abbreviations.
+ * @param code Code from which abbreviation should be extracted
+ * @param pos Location at which abbreviation should be expanded
+ * @param hostSyntax Syntax of `code`. For `html` syntax it detects inline CSS
  */
-export function extract(code: string, pos: number, hostSyntax = 'html'): ExtractedAbbreviationWithContext | undefined {
+export function extract(code: string, pos: number, hostSyntax = 'html', options?: Partial<ExtractOptions>): ExtractedAbbreviationWithContext | undefined {
     if (!hostSyntax || !isSupported(hostSyntax)) {
         // Unknown host syntax: we can’t properly detect abbreviation context,
         // fallback to basic markup abbreviation
-        return extractAbbreviation(code, pos, {
-            lookAhead: true,
-            type: 'markup'
-        }) as ExtractedAbbreviationWithContext;
+        return extractAbbreviation(code, pos, options);
     }
 
     const ctx = isCSS(hostSyntax)
@@ -90,9 +90,9 @@ export function extract(code: string, pos: number, hostSyntax = 'html'): Extract
 
         if (ctx) {
             const abbrData = extractAbbreviation(code, pos, {
-                // TODO add prefix for JSX syntax
                 lookAhead: !isCSS(ctx.syntax),
-                type: isCSS(ctx.syntax) ? 'stylesheet' : 'markup'
+                type: isCSS(ctx.syntax) ? 'stylesheet' : 'markup',
+                ...options
             }) as ExtractedAbbreviationWithContext;
 
             if (abbrData) {

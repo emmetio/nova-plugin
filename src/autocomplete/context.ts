@@ -2,7 +2,7 @@ import { AbbreviationContext, Options } from 'emmet';
 import { scan, createOptions, attributes, ElementType, AttributeToken, ScannerOptions } from '@emmetio/html-matcher';
 import { scan as scanCSS, TokenType } from '@emmetio/css-matcher';
 import { isQuote, isQuotedString, getContent } from '../utils';
-import { isCSS, isXML, isSupported } from '../syntax';
+import { isCSS, isXML, isJSX, isHTML } from '../syntax';
 import { getOutputOptions } from '../emmet';
 
 export interface ActivationContext extends SyntaxContext {
@@ -41,10 +41,18 @@ interface Tag {
 export default function getAbbreviationContext(editor: TextEditor, pos: number): ActivationContext | undefined {
     const syntax = editor.document.syntax;
 
-    if (syntax && isSupported(syntax)) {
-        const context = isCSS(syntax)
-            ? getCSSContext(getContent(editor), pos)
-            : getHTMLContext(getContent(editor), pos, { xml: isXML(syntax) });
+    if (syntax) {
+        let context: SyntaxContext | undefined;
+        if (isJSX(syntax)) {
+            context = { syntax: 'jsx' }
+        } else if (isCSS(syntax)) {
+            context = getCSSContext(getContent(editor), pos);
+        } else if (isHTML(syntax)) {
+            context = getHTMLContext(getContent(editor), pos, {
+                xml: isXML(syntax),
+                skipCSS: isJSX(syntax)
+            });
+        }
 
         if (context) {
             return {
