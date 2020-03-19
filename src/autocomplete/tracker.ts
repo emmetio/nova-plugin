@@ -1,4 +1,3 @@
-import { isSupported } from '../syntax';
 import { getCaret } from '../utils';
 
 export type TextRange = [number, number];
@@ -73,8 +72,7 @@ export function handleSelectionChange(editor: TextEditor, caret = getCaret(edito
  * Returns current abbreviation tracker for given editor, if available
  */
 export function getTracker(editor: TextEditor): Tracker | undefined {
-    const key = getId(editor);
-    return allowTracking(editor) ? cache.get(key) : void 0;
+    return cache.get(getId(editor));
 }
 
 /**
@@ -98,14 +96,6 @@ export function startTracking(editor: TextEditor, start: number, pos: number): T
  */
 export function stopTracking(editor: TextEditor) {
     cache.delete(getId(editor));
-}
-
-/**
- * Check if abbreviation tracking is allowed in given editor
- */
-export function allowTracking(editor: TextEditor): boolean {
-    const syntax = editor.document.syntax;
-    return syntax ? isSupported(syntax) : false;
 }
 
 /**
