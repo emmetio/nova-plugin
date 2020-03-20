@@ -6,6 +6,9 @@
   "version": "1.0",
   "categories": ["completions"],
   "main": "main.js",
+  "homepage": "https://emmet.io",
+  "repository": "https://github.com/emmetio/nova-plugin",
+  "bugs": "https://github.com/emmetio/nova-plugin/issues",
   "entitlements": {
     "filesystem": "readwrite",
     "requests": true
