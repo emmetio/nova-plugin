@@ -3,7 +3,7 @@ import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isCSS, isSupported } from './syntax';
+import { isXML, syntaxInfo, isCSS, isSupported, isHTML } from './syntax';
 import { getContent, toRange, isQuotedString } from './utils';
 import { getCSSContext, getHTMLContext } from './autocomplete/context';
 
@@ -222,23 +222,45 @@ export function getOptions(editor: TextEditor, pos: number): UserConfig {
         config.syntax = 'html';
     }
 
-    // TODO allow user to pick self-close style for HTML: `<br>` or `<br />`
     config.options = getOutputOptions(editor, pos, info.inline);
     return config;
 }
 
 export function getOutputOptions(editor: TextEditor, pos = editor.selectedRange.start, inline?: boolean): Partial<Options> {
+    const { syntax } = editor.document;
     const lineRange = editor.getLineRangeForRange(new Range(pos, pos));
     const line = editor.getTextInRange(lineRange);
     const indent = line.match(/^\s+/);
 
-    return {
+    const opt: Partial<Options> = {
         'output.baseIndent': indent ? indent[0] : '',
         'output.indent': editor.tabText,
         'output.field': field,
         'output.format': !inline,
-        'output.newline': editor.document.eol
+        'output.newline': editor.document.eol,
+        'output.attributeQuotes': nova.config.get('emmet.attribute-quotes', 'string') === 'single' ? 'single' : 'double'
     };
+
+    if (syntax === 'html') {
+        opt['output.selfClosingStyle'] = nova.config.get('emmet.self-closing-style', 'string') === '<br />'
+            ? 'xhtml' : 'html';
+    }
+
+    if (isHTML(syntax)) {
+        if (nova.config.get('emmet.comment', 'boolean')) {
+            opt['comment.enabled'] = true;
+            const template = nova.config.get('emmet.comment-template', 'string');
+            if (template) {
+                opt['comment.after'] = template.replace(/\\n/g, '\n');
+            }
+        }
+
+        if (nova.config.get('emmet.bem', 'boolean')) {
+            opt['bem.enabled'] = true;
+        }
+    }
+
+    return opt;
 }
 
 /**

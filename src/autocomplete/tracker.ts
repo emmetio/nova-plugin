@@ -104,3 +104,7 @@ export function stopTracking(editor: TextEditor) {
 export function getId(editor: TextEditor): string {
     return editor.document.uri;
 }
+
+export function getCache() {
+    return cache;
+}

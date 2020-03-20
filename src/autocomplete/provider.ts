@@ -45,6 +45,10 @@ export default function createProvider(): EmmetCompletionAssistant {
 
     return {
         provideCompletionItems(editor, ctx) {
+            if (!isEnabled()) {
+                return;
+            }
+
             const t = measureTime();
             let result: CompletionItem[] = [];
             let tracker = getTracker(editor) as EmmetTracker | null | undefined;
@@ -101,6 +105,10 @@ export default function createProvider(): EmmetCompletionAssistant {
             return result;
         },
         handleChange(editor) {
+            if (!isEnabled()) {
+                return;
+            }
+
             const key = getId(editor);
             const pos = getCaret(editor);
             const lastPos = lastPosTracker.get(key);
@@ -116,6 +124,10 @@ export default function createProvider(): EmmetCompletionAssistant {
             lastPosTracker.set(key, pos);
         },
         handleSelectionChange(editor) {
+            if (!isEnabled()) {
+                return;
+            }
+
             const key = getId(editor);
             lastPosTracker.set(key, getCaret(editor));
             handleSelectionChange(editor);
@@ -273,6 +285,13 @@ function validateAbbreviation(editor: TextEditor, tracker: EmmetTracker) {
 export function allowTracking(editor: TextEditor): boolean {
     const syntax = editor.document.syntax;
     return syntax ? isSupported(syntax) || isJSX(syntax) : false;
+}
+
+/**
+ * Check if Emmet auto-complete is enabled
+ */
+function isEnabled(): boolean {
+    return nova.config.get('emmet.enable-completions', 'boolean') as boolean;
 }
 
 function measureTime() {
