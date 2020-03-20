@@ -2,5 +2,9 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "types": ["node", "mocha", "text-encoding", "nova"]
-  }
+  },
+  "include": [
+    "../src/**/*.ts",
+    "./**/*.ts"
+  ]
 }

@@ -1,5 +1,5 @@
 import { UserConfig } from 'emmet'
-import { ContextTag, getOptions, expand } from '../emmet';
+import { ContextTag, getOptions, expand, getTagContext } from '../emmet';
 import { narrowToNonSpace } from '../utils';
 
 let lastAbbr = '';
@@ -12,9 +12,10 @@ nova.commands.register('emmet.wrap-with-abbreviation', editor => {
         }
 
         lastAbbr = value;
-        const options = getOptions(editor, sel.start, true);
+        const options = getOptions(editor, sel.start);
         const range = getWrapRange(editor, sel, options);
-        options.text = getContent(editor, range, true);
+        options.context = getTagContext(editor, sel.start);
+        options.text = getWrapContent(editor, range, true);
 
         try {
             const snippet = expand(value, options);
@@ -60,9 +61,9 @@ function getWrapRange(editor: TextEditor, sel: Range, options: UserConfig): Rang
 }
 
 /**
- * Returns contents of given region, properly de-indented
+ * Returns contents for wrapping, properly de-indented
  */
-function getContent(editor: TextEditor, range: Range, splitLines = false): string[] | string {
+function getWrapContent(editor: TextEditor, range: Range, splitLines = false): string[] | string {
     const caret = new Range(range.start, range.start);
     const baseLine = editor.getTextInRange(editor.getLineRangeForRange(caret));
     const m = baseLine.match(/^\s+/);

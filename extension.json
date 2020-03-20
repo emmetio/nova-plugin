@@ -4,9 +4,11 @@
   "vendor": "Emmet",
   "description": "Emmet — the essential toolkit for web-developers",
   "version": "1.0",
-  "categories": [],
+  "categories": ["completions"],
   "main": "main.js",
-  "activationEvents": [],
+  "homepage": "https://emmet.io",
+  "repository": "https://github.com/emmetio/nova-plugin",
+  "bugs": "https://github.com/emmetio/nova-plugin/issues",
   "entitlements": {
     "filesystem": "readwrite",
     "requests": true
@@ -15,87 +17,146 @@
     "editor": [{
       "title": "Expand Abbreviation",
       "command": "emmet.expand-abbreviation",
-      "shortcut": "ctrl-e"
+      "when": "editorHasFocus",
+      "shortcut": "ctr-e"
     }, {
       "title": "Balance",
       "command": "emmet.balance",
-      "shortcut": "ctrl-d"
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
     }, {
       "title": "Balance Inward",
       "command": "emmet.balance-inward",
-      "shortcut": "ctrl-shift-d"
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
     }, {
       "title": "Comment Section",
       "command": "emmet.comment",
-      "shortcut": "ctrl-c"
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
     }, {
       "title": "Convert to data:URL",
       "command": "emmet.convert-data-url",
-      "shortcut": "ctrl-shift-i"
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
     }, {
       "title": "Evaluate Math Expression",
       "command": "emmet.evaluate-math",
-      "shortcut": "ctrl-y"
+      "when": "editorHasFocus"
+    }, {
+      "title": "Go to Tag Pair",
+      "command": "emmet.go-to-tag-pair",
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl"]
+    }, {
+      "title": "Remove Tag",
+      "command": "emmet.remove-tag",
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl"]
+    }, {
+      "title": "Update Image Size",
+      "command": "emmet.update-image-size",
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
+    }, {
+      "title": "Wrap With Abbreviation",
+      "command": "emmet.wrap-with-abbreviation",
+      "when": "editorHasFocus"
+    }, {
+      "title": "Split/Join Tag",
+      "command": "emmet.split-join-tag",
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl"]
     }, {
       "title": "Go to Next Edit Point",
       "command": "emmet.go-to-next-edit-point",
+      "when": "editorHasFocus",
       "shortcut": "ctrl-right"
     }, {
       "title": "Go to Previous Edit Point",
       "command": "emmet.go-to-previous-edit-point",
-      "shortcut": "ctrl-left"
-    }, {
-      "title": "Go to Tag Pair",
-      "command": "emmet.go-to-tag-pair",
-      "shortcut": "ctrl-shift-g"
-    }, {
-      "title": "Remove Tag",
-      "command": "emmet.remove-tag",
-      "shortcut": "ctrl-'"
-    }, {
-      "title": "Update Image Size",
-      "command": "emmet.update-image-size",
-      "shortcut": "ctrl-i"
-    }, {
-      "title": "Wrap With Abbreviation",
-      "command": "emmet.wrap-with-abbreviation",
-      "shortcut": "ctrl-w"
+      "shortcut": "ctrl-left",
+      "when": "editorHasFocus"
     }, {
       "title": "Select Next Item",
       "command": "emmet.select-next-item",
-      "shortcut": "ctrl-shift-right"
+      "shortcut": "ctrl-shift-right",
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
     }, {
       "title": "Select Previous Item",
       "command": "emmet.select-previous-item",
-      "shortcut": "ctrl-shift-left"
-    }, {
-      "title": "Split/Join Tag",
-      "command": "emmet.split-join-tag",
-      "shortcut": "ctrl-shift-'"
+      "shortcut": "ctrl-shift-left",
+      "when": "editorHasFocus",
+      "syntaxes": ["html", "xml", "xsl", "css", "scss", "less"]
     }, {
       "title": "Increment Number by 1",
       "command": "emmet.increment-number-1",
-      "shortcut": "ctrl-up"
+      "shortcut": "ctrl-up",
+      "when": "editorHasFocus"
     }, {
       "title": "Decrement Number by 1",
       "command": "emmet.decrement-number-1",
-      "shortcut": "ctrl-down"
+      "shortcut": "ctrl-down",
+      "when": "editorHasFocus"
     }, {
       "title": "Increment Number by 0.1",
       "command": "emmet.increment-number-01",
-      "shortcut": "ctrl-alt-up"
+      "shortcut": "ctrl-alt-up",
+      "when": "editorHasFocus"
     }, {
       "title": "Decrement Number by 0.1",
       "command": "emmet.decrement-number-01",
-      "shortcut": "ctrl-alt-down"
+      "shortcut": "ctrl-alt-down",
+      "when": "editorHasFocus"
     }, {
       "title": "Increment Number by 10",
       "command": "emmet.increment-number-10",
-      "shortcut": "ctrl-shift-up"
+      "shortcut": "ctrl-shift-up",
+      "when": "editorHasFocus"
     }, {
       "title": "Decrement Number by 10",
       "command": "emmet.decrement-number-10",
-      "shortcut": "ctrl-shift-down"
+      "shortcut": "ctrl-shift-down",
+      "when": "editorHasFocus"
     }]
-  }
+  },
+  "config": [{
+    "key": "emmet.enable-completions",
+    "title": "Enable auto-complete",
+    "description": "When enabled, parses abbreviation as-you-type in known document syntaxes (HTML, CSS etc.) and displays auto-complete popup with expanded preview. Expand it as a regular completion, with Tab or Enter.\nNote that you can always expand abbreviation with Emmet > Expand Abbreviation action in any document event if this option disabled.",
+    "type": "boolean",
+    "default": true
+  }, {
+    "key": "emmet.self-closing-style",
+    "title": "Self-closing tag style in HTML",
+    "type": "enum",
+    "values": ["<br>", "<br />"],
+    "default": "<br>"
+  }, {
+    "key": "emmet.attribute-quotes",
+    "title": "Attribute quotes",
+    "type": "enum",
+    "values": ["single", "double" ],
+    "default": "double"
+  }, {
+    "key": "emmet.comment",
+    "title": "Enable tag commenting",
+    "description": "When enabled, automatically places comment after tags containing either ID or CLASS attribute. For example, expanding `div#foo.bar` will generate `<div id=\"foo\" class=\"bar\"></div><!-- #foo.bar -->`.",
+    "type": "boolean",
+    "default": false,
+    "children": [{
+        "key": "emmet.comment-template",
+        "title": "Comment template",
+        "description": "Contents between [ and ] will be outputted only if specified attribute (written in upper-case) is defined in element. Use \\n for new line.",
+        "type": "string",
+        "default": "\\n<!-- /[#ID][.CLASS] -->"
+      }]
+  }, {
+    "key": "emmet.bem",
+    "title": "Enable BEM support",
+    "description": "When enabled, treats `-` and `_` at the beginning of the class name as BEM element and modifier. For example, `.block.-elem` would be the same as `.block.block__elem`.",
+    "type": "boolean",
+    "default": false
+  }]
 }

@@ -1,3 +1,4 @@
+import { SyntaxType } from 'emmet';
 import { scan, attributes, ElementType } from '@emmetio/html-matcher';
 import { isQuote, getContent } from './utils';
 
@@ -6,9 +7,10 @@ const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'sss', 'stylus', 'pos
 const xmlSyntaxes = ['xml', 'xsl', 'jsx'];
 const htmlSyntaxes = ['html'];
 const cssSyntaxes = ['css', 'scss', 'less'];
+const jsxSyntaxes = ['jsx', 'tsx'];
 
 export interface SyntaxInfo {
-    type: 'markup' | 'stylesheet';
+    type: SyntaxType;
     syntax?: string;
     inline?: boolean;
 }
@@ -35,8 +37,6 @@ export interface SyntaxCache {
 export function syntaxInfo(editor: TextEditor, pos: number, cache?: SyntaxCache): SyntaxInfo {
     let syntax = editor.document.syntax;
     let inline: boolean | undefined;
-    console.log('document syntax:', syntax);
-
 
     if (syntax === 'html') {
         // In HTML documents it’s possible to embed stylesheets.
@@ -50,10 +50,17 @@ export function syntaxInfo(editor: TextEditor, pos: number, cache?: SyntaxCache)
     }
 
     return {
-        type: syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup',
+        type: getSyntaxType(syntax),
         syntax,
         inline
     };
+}
+
+/**
+ * Returns Emmet abbreviation type for given syntax
+ */
+export function getSyntaxType(syntax?: string): SyntaxType {
+    return syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup';
 }
 
 /**
@@ -87,6 +94,13 @@ export function isSupported(syntax: string): boolean {
  */
 export function isCSS(syntax?: string): boolean {
     return syntax ? cssSyntaxes.includes(syntax) : false;
+}
+
+/**
+ * Check if given syntax is JSX dialect
+ */
+export function isJSX(syntax?: string): boolean {
+    return syntax ? jsxSyntaxes.includes(syntax) : false;
 }
 
 /**
@@ -163,9 +177,6 @@ function getStylesheetRegion(code: string, pos: number, cache?: SyntaxCache): St
     } else {
         regions = extractStylesheetRanges(code);
     }
-
-    console.log('found stylesheet regions:', JSON.stringify(regions));
-    console.log('current pos', pos);
 
     return regions.find(r => r.range[0] <= pos && pos <= r.range[1]);
 }

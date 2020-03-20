@@ -7,23 +7,24 @@
     "build": "npm run assets && rollup -c",
     "clean": "rm -rf ./Emmet.novaextension",
     "watch": "npm run assets && rollup -wc",
-    "assets": "mkdir -p Emmet.novaextension && cp ./extension.json ./Emmet.novaextension/",
+    "assets": "mkdir -p Emmet.novaextension && cp ./{extension.json,*.md} ./Emmet.novaextension/",
+    "patch-version": "node ./patch-version.js",
     "test": "mocha"
   },
   "keywords": [],
   "author": "Sergey Chikuyonok <serge.che@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@emmetio/abbreviation": "^2.0.0-rc.6",
-    "@emmetio/css-abbreviation": "^2.0.0-rc.5",
+    "@emmetio/abbreviation": "^2.0.0-rc.7",
+    "@emmetio/css-abbreviation": "^2.0.0-rc.6",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^13.7.7",
-    "mocha": "^7.1.0",
-    "rollup": "^1.31.1",
+    "@types/node": "^13.9.2",
+    "mocha": "^7.1.1",
+    "rollup": "^2.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.26.0",
-    "ts-node": "^8.6.2",
-    "typescript": "^3.8.2"
+    "ts-node": "^8.7.0",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "@emmetio/action-utils": "^1.0.1",
@@ -31,7 +32,7 @@
     "@emmetio/html-matcher": "^1.2.0",
     "@emmetio/math-expression": "^1.0.1",
     "@emmetio/scanner": "0.0.7",
-    "emmet": "^2.0.0-rc.11"
+    "emmet": "^2.0.0-rc.12"
   },
   "mocha": {
     "require": "./test/register",

@@ -1,10 +1,11 @@
-import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractOptions, ExtractedAbbreviation } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options, ExtractOptions } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
-import matchCSS, { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
+import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isHTML } from './syntax';
+import { isXML, syntaxInfo, isCSS, isSupported, isHTML } from './syntax';
 import { getContent, toRange, isQuotedString } from './utils';
+import { getCSSContext, getHTMLContext } from './autocomplete/context';
 
 interface EvaluatedMath {
     start: number;
@@ -21,62 +22,86 @@ export interface ContextTag extends AbbreviationContext {
 export type NovaCSSProperty = CSSProperty<Range>;
 export type NovaCSSSection = CSSSection<NovaCSSProperty>;
 
-interface NovaExtractedAbbreviation extends ExtractedAbbreviation {
-    options: Partial<ExtractOptions>;
+export interface ExtractedAbbreviationWithContext extends ExtractedAbbreviation {
+    context?: AbbreviationContext;
+    inline?: boolean;
 }
+
+export const knownTags = [
+    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
+    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
+    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'content',
+    'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
+    'em', 'embed',
+    'fieldset', 'figcaption', 'figure', 'footer', 'form',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html',
+    'i', 'iframe', 'img', 'input', 'ins',
+    'kbd', 'keygen',
+    'label', 'legend', 'li', 'link',
+    'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter',
+    'nav', 'noscript',
+    'object', 'ol', 'optgroup', 'option', 'output',
+    'p', 'param', 'picture', 'pre', 'progress',
+    'q',
+    'rp', 'rt', 'rtc', 'ruby',
+    's', 'samp', 'script', 'section', 'select', 'shadow', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup',
+    'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
+    'u', 'ul', 'var', 'video', 'wbr'
+];
+
+/**
+ * Cache for storing internal Emmet data.
+ * TODO reset whenever user settings are changed
+ */
+let cache = {};
 
 /**
  * Expands given abbreviation into code snippet
  */
 export function expand(abbr: string, config?: UserConfig) {
     // TODO get global options from config
+    if (config && !config.cache) {
+        config = { ...config, cache };
+    }
     return expandAbbreviation(abbr, config);
 }
 
 /**
- * Extracts abbreviation from given location in editor.
- * @param editor
- * @param loc Location in editor content (`number`) from which abbreviation should
- * be expanded
+ * Extracts abbreviation from given source code by detecting actual syntax context.
+ * For example, if host syntax is HTML, it tries to detect if location is inside
+ * embedded CSS.
+ *
+ * It also detects if abbreviation is allowed at given location: HTML tags,
+ * CSS selectors may not contain abbreviations.
+ * @param code Code from which abbreviation should be extracted
+ * @param pos Location at which abbreviation should be expanded
+ * @param hostSyntax Syntax of `code`. For `html` syntax it detects inline CSS
  */
-export function extract(editor: TextEditor, loc: number | [number, number] | Range, opt?: Partial<ExtractOptions>): NovaExtractedAbbreviation | undefined {
-    let pos = -1;
-    let range: Range | undefined;
-
-    if (Array.isArray(loc)) {
-        loc = toRange(loc);
+export function extract(code: string, pos: number, hostSyntax = 'html', options?: Partial<ExtractOptions>): ExtractedAbbreviationWithContext | undefined {
+    if (!hostSyntax || !isSupported(hostSyntax)) {
+        // Unknown host syntax: we can’t properly detect abbreviation context,
+        // fallback to basic markup abbreviation
+        return extractAbbreviation(code, pos, options);
     }
 
-    if (typeof loc === 'number') {
-        pos = loc;
-        range = editor.getLineRangeForRange(new Range(pos, pos));
-    } else {
-        pos = loc.end;
-        range = loc;
-    }
+    const ctx = isCSS(hostSyntax)
+        ? getCSSContext(code, pos)
+        : getHTMLContext(code, pos, { xml: isXML(hostSyntax) });
 
-    const text = editor.getTextInRange(range);
-    const { start } = range;
+        if (ctx) {
+            const abbrData = extractAbbreviation(code, pos, {
+                lookAhead: !isCSS(ctx.syntax),
+                type: isCSS(ctx.syntax) ? 'stylesheet' : 'markup',
+                ...options
+            }) as ExtractedAbbreviationWithContext;
 
-    if (!opt) {
-        opt = getOptions(editor, pos);
-    }
+            if (abbrData) {
+                abbrData.context = ctx.context;
+                abbrData.inline = !!ctx.inline;
+            }
 
-    // No look-ahead for stylesheets: they do not support brackets syntax
-    // and enabled look-ahead produces false matches
-    opt.lookAhead = opt.type !== 'stylesheet';
-
-    // TODO add prefix for JSX syntax
-
-    const abbrData = extractAbbreviation(text, pos - start, opt) as NovaExtractedAbbreviation;
-    if (abbrData) {
-        abbrData.start += start;
-        abbrData.end += start;
-        abbrData.location += start;
-        abbrData.options = opt;
-
-        return abbrData;
-    }
+            return abbrData;
+        }
 }
 
 /**
@@ -188,58 +213,54 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
 }
 
 /**
- * Returns context CSS property name, if any
- */
-export function getCSSContext(editor: TextEditor, pos: number): AbbreviationContext | undefined {
-    const matched = matchCSS(getContent(editor), pos);
-    if (matched && matched.type === 'property') {
-        return {
-            name: editor.getTextInRange(new Range(matched.start, matched.bodyStart)).replace(/:\s*$/, '')
-        };
-    }
-}
-
-/**
  * Returns Emmet options for given character location in editor
  */
-export function getOptions(editor: TextEditor, pos: number, withContext?: boolean): UserConfig {
+export function getOptions(editor: TextEditor, pos: number): UserConfig {
     const info = syntaxInfo(editor, pos);
     const config = info as UserConfig;
     if (!config.syntax) {
         config.syntax = 'html';
     }
 
-    const lineRange = editor.getLineRangeForRange(editor.selectedRange);
-    const line = editor.getTextInRange(lineRange);
-    const indent = line.match(/^\s+/);
-
-    // TODO allow user to pick self-close style for HTML: `<br>` or `<br />`
-    config.options = {
-        'output.baseIndent': indent ? indent[0] : '',
-        'output.indent': editor.tabText,
-        'output.field': field,
-        "output.format": !info.inline,
-    }
-
-    // Get element context
-    if (withContext) {
-        attachContext(editor, pos, config);
-    }
-
+    config.options = getOutputOptions(editor, pos, info.inline);
     return config;
 }
 
-/**
- * Attaches context for given Emmet config
- */
-export function attachContext(editor: TextEditor, pos: number, config: UserConfig): UserConfig {
-    if (config.type === 'stylesheet') {
-        config.context = getCSSContext(editor, pos);
-    } else if (config.syntax && isHTML(config.syntax)) {
-        config.context = getTagContext(editor, pos, isXML(config.syntax));
+export function getOutputOptions(editor: TextEditor, pos = editor.selectedRange.start, inline?: boolean): Partial<Options> {
+    const { syntax } = editor.document;
+    const lineRange = editor.getLineRangeForRange(new Range(pos, pos));
+    const line = editor.getTextInRange(lineRange);
+    const indent = line.match(/^\s+/);
+
+    const opt: Partial<Options> = {
+        'output.baseIndent': indent ? indent[0] : '',
+        'output.indent': editor.tabText,
+        'output.field': field,
+        'output.format': !inline,
+        'output.newline': editor.document.eol,
+        'output.attributeQuotes': nova.config.get('emmet.attribute-quotes', 'string') === 'single' ? 'single' : 'double'
+    };
+
+    if (syntax === 'html') {
+        opt['output.selfClosingStyle'] = nova.config.get('emmet.self-closing-style', 'string') === '<br />'
+            ? 'xhtml' : 'html';
     }
 
-    return config
+    if (isHTML(syntax)) {
+        if (nova.config.get('emmet.comment', 'boolean')) {
+            opt['comment.enabled'] = true;
+            const template = nova.config.get('emmet.comment-template', 'string');
+            if (template) {
+                opt['comment.after'] = template.replace(/\\n/g, '\n');
+            }
+        }
+
+        if (nova.config.get('emmet.bem', 'boolean')) {
+            opt['bem.enabled'] = true;
+        }
+    }
+
+    return opt;
 }
 
 /**

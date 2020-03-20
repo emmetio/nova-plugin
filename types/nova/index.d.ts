@@ -47,7 +47,7 @@ interface ColorAssistant {
 }
 
 interface CompletionAssistant {
-    provideCompletionItems(editor: TextDocument, context: CompletionContext): CompletionItem[];
+    provideCompletionItems(editor: TextEditor, context: CompletionContext): CompletionItem[] | undefined;
 }
 
 interface IssueAssistant {
@@ -93,7 +93,7 @@ declare class Disposable {
      * Returns `true` if the argument provided is a disposable object which
      * responds to `dispose()`.
      */
-    static isDisposable(object: any): boolean;
+    static isDisposable(object: any): object is Disposable;
 
     /**
      * Relinquishes the object’s resources, which may include stopping a listener,
@@ -151,7 +151,7 @@ declare class TextEditor {
      * returning `false`. This can be most useful for a `Commands` handler function,
      * which can receive either a `Workspace` or `TextEditor` instance as its first argument.
      */
-    static isTextEditor(object: any): boolean;
+    static isTextEditor(object: any): object is TextEditor;
 
     /** The `TextDocument` object backing the editor. */
     readonly document: TextDocument;
@@ -526,6 +526,11 @@ declare class TextEditorEdit {
  */
 declare class TextDocument {
     /**
+     * Unique identifier of opened document
+     */
+    readonly uri: string;
+
+    /**
      * Returns the document’s path, as a `String`, or `null` if the document is unsaved.
      * If the document is remote, this will be the path on the relevant server.
      */
@@ -725,7 +730,7 @@ declare class CompletionItem {
      * contains any characters other than `$`, `[` and `]`. By default this property
      * is `false`.
      */
-    tokenize: boolean;
+    tokenize?: boolean;
 
     constructor(label: string, kind: CompletionItemKind);
 }

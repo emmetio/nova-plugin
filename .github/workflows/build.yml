@@ -22,6 +22,7 @@ jobs:
     - name: Build
       run: |
         npm run build
+        npm run patch-version
         zip -r Emmet.zip ./Emmet.novaextension
 
     - name: Upload artifact
