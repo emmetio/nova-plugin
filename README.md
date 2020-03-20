@@ -1,6 +1,6 @@
 # Emmet for Nova editor
 
-> This is the next version of Emmet plugin with greatly improved developer experience and new features. Read below for more details. Plugin is currently in alpha stage and may contain bugs.
+> Extension development is sponsored by [Panic](https://panic.com)
 
 Emmet is a web-developer’s toolkit for boosting HTML & CSS code writing.
 
