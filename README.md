@@ -64,6 +64,12 @@ Emmet detects camel-cased module notation in JSX: `Foo.Bar` will be expanded as 
 
 In Nova editor, CSS abbreviations are enhanced with dynamic color snippets: you can type, for example, `#f.5` to quickly get `rgba(255, 255, 255, 0.5)`. Emmet automatically detects current context (CSS property or value) and allows you to expand abbreviations allowed in current context only.
 
+## Preferences
+
+Go to Extensions > Extensions Library..., click on Emmet in “Installed Extensions” section then go to Preferences pane to tune-up Emmet behavior like tag commenting and BEM support.
+
+To set-up or change key binding for Emmet actions, go to Nova Preferences > Key Bindings, pick Extensions tab and find Emmet in it.
+
 ## More actions
 
 All the rest actions like [Wrap with Abbreviation](https://docs.emmet.io/actions/wrap-with-abbreviation/), [Balance](https://docs.emmet.io/actions/match-pair/), [Select Item](https://docs.emmet.io/actions/select-item/) etc. are also supported but doesn’t have default key bindings. You should either invoke these actions via Command Palette or create your own keyboard shortcuts in Nova preferences.
