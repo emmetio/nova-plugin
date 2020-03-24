@@ -7,16 +7,11 @@ import {
     startTracking, stopTracking, getTracker, getId, Tracker
 } from './tracker';
 import { toRange, getCaret, getContent } from '../utils';
-import getMarkupSnippetCompletions from './markup-snippets';
-import getStylesheetSnippetCompletions from './stylesheet-snippets';
+import getSnippetsCompletions from './snippets';
 
 interface EmmetCompletionAssistant extends CompletionAssistant {
     handleChange(editor: TextEditor): void;
     handleSelectionChange(editor: TextEditor): void;
-}
-
-export interface EmmetTracker extends Tracker {
-    abbreviation?: ActivationContext;
 }
 
 const JSXPrefix = '<';
@@ -51,7 +46,7 @@ export default function createProvider(): EmmetCompletionAssistant {
 
             const t = measureTime();
             let result: CompletionItem[] = [];
-            let tracker = getTracker(editor) as EmmetTracker | null | undefined;
+            let tracker = getTracker(editor);
 
             if (!tracker && ctx.reason === CompletionReason.Invoke && allowTracking(editor)) {
                 // User forcibly requested completion popup
@@ -69,7 +64,7 @@ export default function createProvider(): EmmetCompletionAssistant {
                     t.mark('Context attached');
                 } else {
                     stopTracking(editor);
-                    tracker = null;
+                    tracker = void 0;
                     t.mark('No context, dispose tracker');
                 }
             }
@@ -100,8 +95,10 @@ export default function createProvider(): EmmetCompletionAssistant {
                 stopTracking(editor);
             }
 
-            console.log(t.dump());
-            // t.dump();
+            t.mark(`Returned completions: ${result.length}`);
+
+            // console.log(t.dump());
+            t.dump();
             return result;
         },
         handleChange(editor) {
@@ -112,10 +109,10 @@ export default function createProvider(): EmmetCompletionAssistant {
             const key = getId(editor);
             const pos = getCaret(editor);
             const lastPos = lastPosTracker.get(key);
-
             const tracker = handleChange(editor);
+
             if (tracker) {
-                if (!validateAbbreviation(editor, tracker as EmmetTracker)) {
+                if (!validateAbbreviation(editor, tracker)) {
                     stopTracking(editor);
                 }
             } else if (allowTracking(editor) && lastPos != null && lastPos === pos - 1) {
@@ -138,7 +135,7 @@ export default function createProvider(): EmmetCompletionAssistant {
 /**
  * Check if we can start abbreviation tracking at given location in editor
  */
-function startAbbreviationTracking(editor: TextEditor, pos: number): EmmetTracker | undefined {
+function startAbbreviationTracking(editor: TextEditor, pos: number): Tracker | undefined {
     // Start tracking only if user starts abbreviation typing: entered first
     // character at the word bound
     // NB: get last 2 characters: first should be a word bound (or empty),
@@ -166,20 +163,20 @@ function startAbbreviationTracking(editor: TextEditor, pos: number): EmmetTracke
             }
         }
 
-        return startTracking(editor, start, end) as EmmetTracker;
+        return startTracking(editor, start, end);
     }
 }
 
 /**
  * If allowed, tries to extract abbreviation from given completion context
  */
-function extractAbbreviationTracking(editor: TextEditor, ctx: CompletionContext): EmmetTracker | undefined {
+function extractAbbreviationTracking(editor: TextEditor, ctx: CompletionContext): Tracker | undefined {
     const { syntax } = editor.document;
     const abbr = extract(getContent(editor), ctx.position, syntax, {
         prefix: isJSX(syntax) ? JSXPrefix : ''
     });
     if (abbr) {
-        return startTracking(editor, abbr.start, abbr.end) as EmmetTracker;
+        return startTracking(editor, abbr.start, abbr.end);
     }
 }
 
@@ -211,7 +208,7 @@ function previewField(index: number, placeholder: string) {
 /**
  * Creates completion with expanded abbreviation, if possible
  */
-function createExpandAbbreviationCompletion(editor: TextEditor, tracker: EmmetTracker, config: UserConfig): CompletionItem {
+function createExpandAbbreviationCompletion(editor: TextEditor, tracker: Tracker, config: UserConfig): CompletionItem {
     const abbrRange = toRange(tracker.range);
     let abbr = editor.getTextInRange(abbrRange);
     if (isJSX(editor.document.syntax) && abbr[0] === JSXPrefix) {
@@ -231,20 +228,6 @@ function createExpandAbbreviationCompletion(editor: TextEditor, tracker: EmmetTr
 }
 
 /**
- * Returns list of raw snippet completions
- */
-function getSnippetsCompletions(editor: TextEditor, tracker: EmmetTracker, ctx: CompletionContext): CompletionItem[] {
-    const abbr = editor.getTextInRange(toRange(tracker.range));
-    const pos = ctx.position - tracker.range[0];
-    const { syntax } = tracker.abbreviation!;
-    const result: CompletionItem[] = isCSS(syntax)
-        ? getStylesheetSnippetCompletions(abbr, pos, syntax)
-        : getMarkupSnippetCompletions(abbr, pos, syntax);
-
-    return result;
-}
-
-/**
  * Returns abbreviation tracked by given `tracker`
  */
 function abbrFromTracker(editor: TextEditor, tracker: Tracker): string {
@@ -256,7 +239,7 @@ function abbrFromTracker(editor: TextEditor, tracker: Tracker): string {
  * Validates abbreviation abbreviation in given tracker: returns `true` if tracker
  * can be used (but it’s not necessary its abbreviation is valid), `false` otherwise
  */
-function validateAbbreviation(editor: TextEditor, tracker: EmmetTracker) {
+function validateAbbreviation(editor: TextEditor, tracker: Tracker) {
     // Check if abbreviation is still valid
     const abbr = abbrFromTracker(editor, tracker);
 

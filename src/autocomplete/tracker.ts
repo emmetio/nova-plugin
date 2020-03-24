@@ -1,4 +1,5 @@
 import { getCaret } from '../utils';
+import { ActivationContext } from './context';
 
 export type TextRange = [number, number];
 
@@ -11,6 +12,9 @@ export interface Tracker {
 
     /** Tracked abbreviation range */
     range: TextRange;
+
+    /** Parsed abbreviation for current tracker with activation context */
+    abbreviation?: ActivationContext;
 }
 
 const cache = new Map<string, Tracker>();
