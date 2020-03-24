@@ -18,9 +18,7 @@ export default function addAutocomplete() {
     nova.assistants.registerCompletionAssistant('*', provider);
     nova.workspace.onDidAddTextEditor(editor => {
         editor.onDidChange(provider.handleChange);
+        editor.onDidChangeSelection(provider.handleSelectionChange);
         editor.onDidDestroy(cleanUpTrackers);
-        // TODO uncomment when Nova devs fix bug:
-        // https://dev.panic.com/panic/nova-issues/issues/685
-        // editor.onDidChangeSelection(provider.handleSelectionChange);
     });
 }

@@ -634,10 +634,10 @@ interface CompletionContext {
 
 declare const enum CompletionReason {
     /** Completion was triggered direct by the user, such as by hitting the escape key */
-    Invoke = 'Invoke',
+    Invoke = 0,
 
     /** Completion was triggered by the user typing a character */
-    Character = 'Character'
+    Character = 1
 }
 
 declare enum CompletionItemKind {
