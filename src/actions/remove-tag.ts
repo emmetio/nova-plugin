@@ -23,7 +23,7 @@ function removeTag(editor: TextEditor, edit: TextEditorEdit, { open, close }: Co
     if (close) {
         // Remove open and close tag and dedent inner content
         const innerRange = narrowToNonSpace(editor, new Range(open.end, close.start));
-        if (innerRange) {
+        if (!innerRange.empty) {
             // Gracefully remove open and close tags and tweak indentation on tag contents
             edit.delete(new Range(innerRange.end, close.end));
 

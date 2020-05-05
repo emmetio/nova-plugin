@@ -11,8 +11,8 @@ import './actions/select-item';
 import './actions/split-join-tag';
 import './actions/update-image-size';
 import './actions/wrap-with-abbreviation';
-import addAutocomplete from './autocomplete';
+// import addAutocomplete from './autocomplete';
 
-export function activate() {
-    addAutocomplete();
-}
+// export function activate() {
+//     addAutocomplete();
+// }
