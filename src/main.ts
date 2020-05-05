@@ -13,6 +13,6 @@ import './actions/update-image-size';
 import './actions/wrap-with-abbreviation';
 // import addAutocomplete from './autocomplete';
 
-// export function activate() {
-//     addAutocomplete();
-// }
+export function activate() {
+    // addAutocomplete();
+}

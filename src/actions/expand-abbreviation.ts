@@ -1,13 +1,13 @@
 import { expand, extract, getOptions, ExtractedAbbreviationWithContext } from '../emmet';
 import { getCaret, replaceWithSnippet, getContent } from '../utils';
-import { isSupported, isJSX } from '../syntax';
+import { isSupported } from '../syntax';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     const caret = getCaret(editor);
     const { syntax } = editor.document;
     let abbr: ExtractedAbbreviationWithContext | undefined;
     const opt = {
-        prefix: isJSX(syntax) ? '<' : ''
+        // prefix: isJSX(syntax) ? '<' : ''
     };
 
     // For optimization purposes, use full content scan to extract abbreviation

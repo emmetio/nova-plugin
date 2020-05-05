@@ -18,7 +18,7 @@
       "title": "Expand Abbreviation",
       "command": "emmet.expand-abbreviation",
       "when": "editorHasFocus",
-      "shortcut": "ctr-e"
+      "shortcut": "ctrl-e"
     }, {
       "title": "Balance",
       "command": "emmet.balance",
