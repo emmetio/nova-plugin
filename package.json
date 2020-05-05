@@ -7,7 +7,7 @@
     "build": "npm run assets && rollup -c",
     "clean": "rm -rf ./Emmet.novaextension",
     "watch": "npm run assets && rollup -wc",
-    "assets": "mkdir -p Emmet.novaextension && cp ./extension.{json,png} ./Emmet.novaextension/ && cp ./*.md ./Emmet.novaextension/",
+    "assets": "mkdir -p Emmet.novaextension && cp ./extension.json ./Emmet.novaextension/ && cp ./extension.png ./Emmet.novaextension/ && cp ./*.md ./Emmet.novaextension/",
     "patch-version": "node ./patch-version.js",
     "test": "mocha"
   },
