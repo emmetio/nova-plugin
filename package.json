@@ -15,8 +15,8 @@
   "author": "Sergey Chikuyonok <serge.che@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@emmetio/abbreviation": "^2.0.0-rc.7",
-    "@emmetio/css-abbreviation": "^2.0.0-rc.6",
+    "@emmetio/abbreviation": "^2.0.0",
+    "@emmetio/css-abbreviation": "^2.0.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.2",
     "mocha": "^7.1.1",
@@ -27,12 +27,12 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "@emmetio/action-utils": "^1.0.1",
-    "@emmetio/css-matcher": "^0.1.1",
-    "@emmetio/html-matcher": "^1.2.0",
-    "@emmetio/math-expression": "^1.0.1",
-    "@emmetio/scanner": "0.0.7",
-    "emmet": "^2.0.0-rc.12"
+    "@emmetio/action-utils": "^1.0.5",
+    "@emmetio/css-matcher": "^1.0.2",
+    "@emmetio/html-matcher": "^1.2.3",
+    "@emmetio/math-expression": "^1.0.4",
+    "@emmetio/scanner": "^1.0.0",
+    "emmet": "^2.0.0"
   },
   "mocha": {
     "require": "./test/register",
