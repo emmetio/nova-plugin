@@ -4,7 +4,7 @@
   "description": "Emmet plugin for Panic Nova editor",
   "main": "index.js",
   "scripts": {
-    "build": "npm run assets && rollup -c",
+    "build": "npm run assets && npm run patch-version && rollup -c",
     "clean": "rm -rf ./Emmet.novaextension",
     "watch": "npm run assets && rollup -wc",
     "assets": "mkdir -p Emmet.novaextension && cp ./extension.json ./Emmet.novaextension/ && cp ./extension.png ./Emmet.novaextension/ && cp ./*.md ./Emmet.novaextension/",
