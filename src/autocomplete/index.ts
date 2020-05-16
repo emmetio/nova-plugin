@@ -60,7 +60,8 @@ function createExpandAbbreviationCompletion(editor: TextEditor, tracker: Abbrevi
     completion.range = toRange(tracker.range);
     completion.insertText = expand(editor, abbr, tracker.options);
     completion.detail = 'Emmet';
-    if (nova.workspace.config.get('emmet.preview-completion', 'boolean')) {
+
+    if (nova.config.get('emmet.preview-completion', 'boolean')) {
         completion.documentation = abbrData['preview'];
     }
 

@@ -38,19 +38,31 @@ In Nova editor, pick Extensions > Extensions Library... menu item then find & in
 
 To expand Emmet abbreviation, type it in editor and run Editor > Emmet > Expand Abbreviation. For example, type `ul.nav>.item*4>a` and hit <kbd>Ctrl-E</kbd>.
 
-### Expanding with Tab key
+Also, abbreviation expander acts as *autocomplete provider* and automatically captures abbreviation as you type.
 
-Currently, it’s not possible to bind <kbd>Tab</kbd> key to Emmet. There’s [issue in Nova](https://dev.panic.com/panic/nova-issues/-/issues/708) that prevents Emmet to act as completion provider which allows <kbd>Tab</kbd> key expander to work. Issue should be fixed in beta11.
+When you start typing in *Emmet-supported document* (HTML, XML CSS, etc.) Emmet detects if you’re typing something similar to abbreviation and provides auto-complete item with expanded abbreviation preview. Hit <kbd>Tab</kbd> or <kbd>Enter</kbd> key to expand it, hit <kbd>Esc</kbd> to cancel or use arrow keys to pick another completion item.
+
+![Emmet abbreviation example](./images/emmet1.gif)
+
+If you already have an abbreviation in document and you want to expand it, move caret to the end of abbreviation and invoke autocomplete (<kbd>Esc</kbd> by default) to capture abbreviation:
+
+![Emmet abbreviation example](./images/emmet2.gif)
 
 ### JSX support
 
 > Make sure your document syntax is set to JSX, not JavaScript
 
+Writing Emmet abbreviations in JSX is a bit tricky: in most cases you’d expect Tab key to expand native Nova clips or completions and use Emmet for specific context only. So a default abbreviation capturing for every variable or snippet would annoy you.
+
+To solve this problem, Emmet uses *prefixed abbreviations* in JSX: it will capture and expand abbreviation only if it’s prefixed with `<` character:
+
+![Emmet abbreviation example](./images/emmet3.gif)
+
 Emmet detects camel-cased module notation in JSX: `Foo.Bar` will be expanded as `<Foo.Bar></Foo.Bar>` instead of `<Foo className="Bar"></Foo>`. Expression attributes are supported as well: `div[class={getClass('foo')}]`.
 
 ### CSS support
 
-In Nova editor, CSS abbreviations are enhanced with dynamic color snippets: you can type, for example, `#f.5` as abbreviation to quickly get `rgba(255, 255, 255, 0.5)`. Emmet automatically detects current context (CSS property or value) and allows you to expand abbreviations allowed in current context only.
+In Nova editor, CSS abbreviations are enhanced with dynamic color snippets: you can type, for example, `#f.5` to quickly get `rgba(255, 255, 255, 0.5)`. Emmet automatically detects current context (CSS property or value) and allows you to expand abbreviations allowed in current context only.
 
 ## Preferences
 
