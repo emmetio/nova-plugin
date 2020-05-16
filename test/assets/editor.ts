@@ -22,6 +22,20 @@ export default function createEditorStub(content = '', pos = 0, syntax = 'html')
         getTextInRange(range: Range): string {
             return content.slice(range.start, range.end);
         },
+        getLineRangeForRange(range: Range): Range {
+            let start = 0;
+            for (let i = 0; i < content.length; i++) {
+                const ch = content[i];
+                if (ch === '\n' || ch === '\r') {
+                    const lineRange = new Range(start, i + 1);
+                    if (lineRange.containsRange(range)) {
+                        return lineRange;
+                    }
+                    start = i + 1;
+                }
+            }
+            return new Range(0, 0);
+        },
         edit(callback) {
             callback({
                 insert(pos, text) {

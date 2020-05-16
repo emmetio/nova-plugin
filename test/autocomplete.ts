@@ -4,8 +4,10 @@ import { AbbreviationContext } from 'emmet';
 import { deepStrictEqual as deepEqual, strictEqual as equal } from 'assert';
 import Range from './assets/range';
 import createSimulator from './assets/simutator';
-import { getHTMLContext, getCSSContext } from '../src/autocomplete/context';
-import { startTracking, getTracker, handleChange, handleSelectionChange } from '../src/autocomplete/tracker';
+import { IssueCollection, Issue, IssueSeverity } from './assets/issue';
+import nova from './assets/nova';
+import { getHTMLContext, getCSSContext } from '../src/lib/context';
+import { startTracking, getTracker, handleChange, handleSelectionChange } from '../src/abbreviation/AbbreviationTracker';
 
 function read(fileName: string): string {
     const absPath = path.resolve(__dirname, fileName);
@@ -21,8 +23,20 @@ function context(name: string, attributes?: { [name: string]: string }): Abbrevi
 }
 
 describe('Autocomplete provider', () => {
-    before(() => global['Range'] = Range);
-    after(() => delete global['Range']);
+    before(() => {
+        global['Range'] = Range;
+        global['IssueCollection'] = IssueCollection;
+        global['Issue'] = Issue;
+        global['IssueSeverity'] = IssueSeverity;
+        global['nova'] = nova;
+    });
+    after(() => {
+        delete global['Range'];
+        delete global['IssueCollection'];
+        delete global['Issue'];
+        delete global['IssueSeverity'];
+        delete global['nova'];
+    });
 
     it('HTML context', () => {
         const html = read('./samples/embedded-style.html');

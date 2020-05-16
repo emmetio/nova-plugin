@@ -1,4 +1,4 @@
-import { isXML, syntaxInfo, SyntaxCache } from '../syntax';
+import { isXML, syntaxInfo, SyntaxCache } from '../lib/syntax';
 import { getTagContext } from '../lib/emmet';
 import { isSpace } from '../lib/utils';
 
