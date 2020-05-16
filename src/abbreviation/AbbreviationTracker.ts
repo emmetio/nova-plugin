@@ -1,8 +1,7 @@
 import { UserConfig, markupAbbreviation, MarkupAbbreviation, stylesheetAbbreviation, StylesheetAbbreviation } from 'emmet';
 import { TextRange } from '@emmetio/action-utils';
-import { substr, toRange, getCaret, AbbrError, errorSnippet } from '../lib/utils';
+import { substr, toRange, getCaret, getContent, AbbrError, replaceWithSnippet } from '../lib/utils';
 import { getOptions, expand } from '../lib/emmet';
-import getEmmetConfig from '../lib/config';
 
 interface AbbrBase {
     abbr: string;
@@ -26,14 +25,7 @@ export interface StartTrackingParams {
     forced?: boolean;
 }
 
-/** Class name for Emmet abbreviation marker in editor */
-const markClass = 'emmet-abbreviation';
-
-/** Class name for Emmet abbreviation preview in editor */
-const previewClass = 'emmet-abbreviation-preview';
-
-/** Key for storing Emmet tracker in editor instance */
-const trackerKey = '$$emmetTracker';
+const cache = new Map<string, AbbreviationTracker>();
 
 export default class AbbreviationTracker {
     /** Last caret location in document */
@@ -47,10 +39,6 @@ export default class AbbreviationTracker {
     /** Parsed abbreviation for current range. May contain error */
     public abbreviation: ParsedAbbreviation | ParsedAbbreviationError | null = null;
     public options: UserConfig | undefined;
-
-    private marker: CodeMirror.TextMarker | null = null;
-    private preview: CodeMirror.Editor | null = null;
-    private forcedMarker: HTMLElement | null = null;
 
     constructor(start: number, pos: number, length: number, public forced = false) {
         this.lastPos = pos;
@@ -83,7 +71,7 @@ export default class AbbreviationTracker {
     /**
      * Updates abbreviation data from current tracker
      */
-    updateAbbreviation(editor: CodeMirror.Editor) {
+    updateAbbreviation(editor: TextEditor) {
         let abbr = substr(editor, this.range);
         if (this.offset) {
             abbr = abbr.slice(this.offset);
@@ -125,122 +113,18 @@ export default class AbbreviationTracker {
     }
 
     /**
-     * Marks tracker in given editor
-     */
-    mark(editor: CodeMirror.Editor) {
-        this.disposeMarker();
-        const [from, to] = toRange(editor, this.range);
-        this.marker = editor.markText(from, to, {
-            inclusiveLeft: true,
-            inclusiveRight: true,
-            clearWhenEmpty: false,
-            className: markClass
-        });
-
-        if (this.forced && !this.forcedMarker) {
-            this.forcedMarker = document.createElement('div');
-            this.forcedMarker.className = `${markClass}-marker`;
-            editor.addWidget(from, this.forcedMarker, false);
-        }
-    }
-
-    /**
-     * Remove current tracker marker
-     */
-    unmark() {
-        this.disposeMarker();
-        this.hidePreview();
-    }
-
-    showPreview(editor: CodeMirror.Editor) {
-        const config = getEmmetConfig(editor);
-        if (!config.preview) {
-            return;
-        }
-
-        let content: string | undefined;
-        let isError = false;
-
-        if (this.abbreviation) {
-            if (this.abbreviation.type === 'error') {
-                content = errorSnippet(this.abbreviation.error);
-                isError = true;
-            } else if (this.forced || !this.abbreviation.simple) {
-                content = this.abbreviation.preview;
-            }
-        }
-
-        if (content) {
-            if (!this.preview) {
-                const previewElem = document.createElement('div');
-                previewElem.className = previewClass;
-
-                const pos = editor.posFromIndex(this.range[0]);
-                if (config.attachPreview) {
-                    config.attachPreview(editor, previewElem, pos);
-                } else {
-                    editor.addWidget(pos, previewElem, false);
-                }
-
-                // @ts-ignore
-                this.preview = new editor.constructor(previewElem, {
-                    mode: editor.getOption('mode'),
-                    readOnly: 'nocursor',
-                    lineNumbers: false
-                }) as CodeMirror.Editor;
-
-                const errElement = document.createElement('div');
-                errElement.className = `${previewClass}-error`;
-                previewElem.appendChild(errElement);
-            }
-
-            const wrapper = this.preview.getWrapperElement().parentElement!;
-            wrapper.classList.toggle('has-error', isError);
-            if (isError) {
-                wrapper.querySelector(`.${previewClass}-error`)!.innerHTML = content;
-            } else {
-                this.preview.setValue(content);
-            }
-        } else {
-            this.hidePreview();
-        }
-    }
-
-    /**
-     * Removes preview of current abbreviation
-     */
-    hidePreview() {
-        if (this.preview) {
-            this.preview.getWrapperElement().parentElement!.remove();
-            this.preview = null;
-        }
-    }
-
-    /**
      * Check if current range contains given position
      */
     contains(pos: number): boolean {
         return pos >= this.range[0] && pos <= this.range[1];
-    }
-
-    private disposeMarker() {
-        if (this.marker) {
-            this.marker.clear();
-            this.marker = null;
-        }
-
-        if (this.forcedMarker) {
-            this.forcedMarker.remove();
-            this.forcedMarker = null;
-        }
     }
 }
 
 /**
  * Returns abbreviation tracker for given editor
  */
-export function getTracker(editor: CodeMirror.Editor): AbbreviationTracker | undefined {
-    return editor[trackerKey];
+export function getTracker(editor: TextEditor): AbbreviationTracker | undefined {
+    return cache.get(getId(editor));
 }
 
 /**
@@ -248,38 +132,36 @@ export function getTracker(editor: CodeMirror.Editor): AbbreviationTracker | und
  * @param start Location of abbreviation start
  * @param pos Current caret position, must be greater that `start`
  */
-export function startTracking(editor: CodeMirror.Editor, start: number, pos: number, params?: StartTrackingParams): AbbreviationTracker {
-    const tracker = new AbbreviationTracker(start, pos, editor.getValue().length, params?.forced);
+export function startTracking(editor: TextEditor, start: number, pos: number, params?: StartTrackingParams): AbbreviationTracker {
+    const tracker = new AbbreviationTracker(start, pos, getContent(editor).length, params?.forced);
     if (params) {
         tracker.options = params.options;
         tracker.offset = params.offset || 0;
     }
 
     tracker.updateAbbreviation(editor);
-    tracker.mark(editor);
-    return editor[trackerKey] = tracker;
+    cache.set(getId(editor), tracker);
+    return tracker;
 }
 
 /**
  * Stops abbreviation tracking in given editor instance
  */
-export function stopTracking(editor: CodeMirror.Editor, skipRemove?: boolean) {
+export function stopTracking(editor: TextEditor, skipRemove?: boolean) {
     const tracker = getTracker(editor);
     if (tracker) {
-        tracker.unmark();
         if (tracker.forced && !skipRemove) {
             // Contents of forced abbreviation must be removed
-            const [from, to] = toRange(editor, tracker.range);
-            editor.replaceRange('', from, to);
+            replaceWithSnippet(editor, toRange(tracker.range), '');
         }
-        editor[trackerKey] = null;
+        cache.delete(getId(editor));
     }
 }
 
 /**
  * Handle content change in given editor instance
  */
-export function handleChange(editor: CodeMirror.Editor): AbbreviationTracker | undefined {
+export function handleChange(editor: TextEditor): AbbreviationTracker | undefined {
     const tracker = getTracker(editor);
     if (!tracker) {
         return;
@@ -293,7 +175,7 @@ export function handleChange(editor: CodeMirror.Editor): AbbreviationTracker | u
         return
     }
 
-    const length = editor.getValue().length;
+    const length = getContent(editor).length;
     const pos = getCaret(editor);
     const delta = length - tracker.lastLength;
 
@@ -318,17 +200,27 @@ export function handleChange(editor: CodeMirror.Editor): AbbreviationTracker | u
         stopTracking(editor);
     } else {
         tracker.updateAbbreviation(editor);
-        tracker.mark(editor);
         return tracker;
     }
 }
 
-export function handleSelectionChange(editor: CodeMirror.Editor, caret = getCaret(editor)): AbbreviationTracker | undefined {
+export function handleSelectionChange(editor: TextEditor, caret = getCaret(editor)): AbbreviationTracker | undefined {
     const tracker = getTracker(editor);
     if (tracker) {
         tracker.lastPos = caret;
     }
     return tracker;
+}
+
+/**
+ * Returns unique identifier of editor’s underlying document
+ */
+export function getId(editor: TextEditor): string {
+    return editor.document.uri;
+}
+
+export function getCache() {
+    return cache;
 }
 
 /**

@@ -11,8 +11,12 @@ import './actions/select-item';
 import './actions/split-join-tag';
 import './actions/update-image-size';
 import './actions/wrap-with-abbreviation';
-// import addAutocomplete from './autocomplete';
+import initAbbreviationTracker from './abbreviation';
+import createAutocompleteProvider from './autocomplete';
 
 export function activate() {
-    // addAutocomplete();
+    // TODO activate only of option is enabled, dispose on option disabled
+    const autocomplete = createAutocompleteProvider()
+    nova.workspace.onDidAddTextEditor(initAbbreviationTracker);
+    nova.assistants.registerCompletionAssistant('*', autocomplete);
 }

@@ -1,11 +1,14 @@
 import { UserConfig } from 'emmet';
-import getEmmetConfig from '../lib/config';
-import { isSupported, isJSX, syntaxFromPos, isCSS, isHTML, docSyntax } from '../lib/syntax';
-import { getCaret, substr } from '../lib/utils';
-import { JSX_PREFIX } from '../lib/emmet';
+import { isSupported, isJSX, isCSS, isHTML, docSyntax } from '../lib/syntax';
+import { getCaret, substr, getContent } from '../lib/utils';
+import { JSX_PREFIX, extract } from '../lib/emmet';
 import getAbbreviationContext from '../lib/context';
-import AbbreviationTracker, { handleChange, handleSelectionChange, stopTracking, startTracking } from './AbbreviationTracker';
+import AbbreviationTracker, { handleChange, stopTracking, startTracking } from './AbbreviationTracker';
 
+export { getTracker } from './AbbreviationTracker';
+export { AbbreviationTracker };
+
+const tabStop = String.fromCodePoint(0xFFFC);
 const reJSXAbbrStart = /^[a-zA-Z.#\[\(]$/;
 const reWordBound = /^[\s>;"\']?[a-zA-Z.#!@\[\(]$/;
 const pairs = {
@@ -14,10 +17,15 @@ const pairs = {
     '(': ')'
 };
 
-export default function initAbbreviationTracker(editor: CodeMirror.Editor) {
-    let lastPos: number | null = null;
+const pairsEnd: string[] = [];
+for (const key of Object.keys(pairs)) {
+    pairsEnd.push(pairs[key]);
+}
 
-    const onChange = (ed: CodeMirror.Editor) => {
+export default function initAbbreviationTracker(editor: TextEditor) {
+    let lastPos: number | null = null;
+    const disposable = new CompositeDisposable();
+    disposable.add(editor.onDidChange(ed => {
         const pos = getCaret(ed);
         let tracker = handleChange(ed);
 
@@ -30,42 +38,25 @@ export default function initAbbreviationTracker(editor: CodeMirror.Editor) {
         }
 
         lastPos = pos;
-    };
-    const onSelectionChange = (ed: CodeMirror.Editor) => {
-        if (!isEnabled(ed)) {
-            return;
+    }));
+
+    disposable.add(editor.onDidChangeSelection(ed => {
+        if (isEnabled()) {
+            lastPos = getCaret(ed);
         }
+    }));
 
-        const caret = getCaret(ed);
-        const tracker = handleSelectionChange(ed, caret);
-        if (tracker) {
-            if (tracker.abbreviation && tracker.contains(caret)) {
-                tracker.showPreview(ed);
-            } else {
-                tracker.hidePreview();
-            }
-        }
+    disposable.add(editor.onDidDestroy(stopTracking));
 
-        lastPos = caret;
-    };
-
-    editor.on('change', onChange);
-    editor.on('focus', onSelectionChange);
-    editor.on('cursorActivity', onSelectionChange);
-
-    return () => {
-        editor.off('change', onChange);
-        editor.off('focus', onSelectionChange);
-        editor.off('cursorActivity', onSelectionChange);
-    };
+    return disposable;
 }
 
 /**
  * Check if abbreviation tracking is allowed in editor at given location
  */
-function allowTracking(editor: CodeMirror.Editor, pos: number): boolean {
-    if (isEnabled(editor)) {
-        const syntax = syntaxFromPos(editor, pos);
+function allowTracking(editor: TextEditor, pos: number): boolean {
+    if (isEnabled()) {
+        const syntax = docSyntax(editor);
         return syntax ? isSupported(syntax) || isJSX(syntax) : false;
     }
 
@@ -73,16 +64,28 @@ function allowTracking(editor: CodeMirror.Editor, pos: number): boolean {
 }
 
 /**
- * Check if Emmet auto-complete is enabled
+ * Check if Emmet abbreviation tracking is enabled
  */
-function isEnabled(editor: CodeMirror.Editor): boolean {
-    return getEmmetConfig(editor).mark;
+export function isEnabled(): boolean {
+    return nova.config.get('emmet.enable-completions', 'boolean')!;
+}
+
+/**
+ * If allowed, tries to extract abbreviation from given completion context
+ */
+export function extractTracker(editor: TextEditor, ctx: CompletionContext): AbbreviationTracker | undefined {
+    const { syntax } = editor.document;
+    const prefix = isJSX(syntax) ? JSX_PREFIX : ''
+    const abbr = extract(getContent(editor), ctx.position, syntax, { prefix });
+    if (abbr) {
+        return startTracking(editor, abbr.start, abbr.end, { offset: prefix.length });
+    }
 }
 
 /**
  * Check if we can start abbreviation tracking at given location in editor
  */
-function startAbbreviationTracking(editor: CodeMirror.Editor, pos: number): AbbreviationTracker | undefined {
+function startAbbreviationTracking(editor: TextEditor, pos: number): AbbreviationTracker | undefined {
     // Start tracking only if user starts abbreviation typing: entered first
     // character at the word bound
     // NB: get last 2 characters: first should be a word bound(or empty),
@@ -135,9 +138,15 @@ function shouldStopTracking(tracker: AbbreviationTracker, pos: number): boolean 
         return false;
     }
 
-    if (!tracker.abbreviation || /[\r\n]/.test(tracker.abbreviation.abbr)) {
-        // — Stop tracking if abbreviation is empty
-        // — Never allow new lines in auto - tracked abbreviation
+    if (!tracker.abbreviation) {
+        return true;
+    }
+
+    const { abbr } = tracker.abbreviation;
+
+    if (/[\r\n]/.test(abbr) || abbr.includes(tabStop)) {
+        // — Never allow new lines in auto-tracked abbreviation
+        // – Stop if abbreviation contains tab-stop (expanded abbreviation)
         return true;
     }
 
@@ -149,8 +158,6 @@ function shouldStopTracking(tracker: AbbreviationTracker, pos: number): boolean 
             return true;
         }
 
-        const pairsEnd = Object.values(pairs);
-        const { abbr } = tracker.abbreviation;
         const start = tracker.range[0];
         let targetPos = tracker.range[1];
         while (targetPos > start) {
