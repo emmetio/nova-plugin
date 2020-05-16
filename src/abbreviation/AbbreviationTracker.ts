@@ -40,10 +40,13 @@ export default class AbbreviationTracker {
     public abbreviation: ParsedAbbreviation | ParsedAbbreviationError | null = null;
     public options: UserConfig | undefined;
 
+    private marker: IssueCollection;
+
     constructor(start: number, pos: number, length: number, public forced = false) {
         this.lastPos = pos;
         this.lastLength = length;
         this.range = [start, pos];
+        this.marker = new IssueCollection('Emmet');
     }
 
     /**
@@ -82,6 +85,7 @@ export default class AbbreviationTracker {
         }
 
         this.abbreviation = null;
+        this.marker.clear();
 
         if (!abbr) {
             return;
@@ -110,6 +114,21 @@ export default class AbbreviationTracker {
         } catch (error) {
             this.abbreviation = { type: 'error', abbr, error };
         }
+
+        const issue = new Issue();
+        issue.textRange = toRange(this.range);
+
+        if (this.abbreviation.type === 'abbreviation') {
+            issue.code = 'EmmetAbbr';
+            issue.severity = IssueSeverity.Hint;
+            issue.message = 'Emmet abbreviation';
+        } else {
+            issue.code = 'EmmetAbbrError';
+            issue.severity = IssueSeverity.Error;
+            issue.message = this.abbreviation.error.message;
+        }
+
+        this.marker.append(editor.document.uri, [issue]);
     }
 
     /**
@@ -117,6 +136,10 @@ export default class AbbreviationTracker {
      */
     contains(pos: number): boolean {
         return pos >= this.range[0] && pos <= this.range[1];
+    }
+
+    dispose() {
+        this.marker.dispose();
     }
 }
 
@@ -154,6 +177,7 @@ export function stopTracking(editor: TextEditor, skipRemove?: boolean) {
             // Contents of forced abbreviation must be removed
             replaceWithSnippet(editor, toRange(tracker.range), '');
         }
+        tracker.dispose();
         cache.delete(getId(editor));
     }
 }

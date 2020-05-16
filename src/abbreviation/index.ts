@@ -22,6 +22,8 @@ for (const key of Object.keys(pairs)) {
     pairsEnd.push(pairs[key]);
 }
 
+nova.commands.register('emmet.clear-marker', stopTracking);
+
 export default function initAbbreviationTracker(editor: TextEditor) {
     let lastPos: number | null = null;
     const disposable = new CompositeDisposable();

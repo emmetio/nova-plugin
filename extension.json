@@ -20,6 +20,10 @@
       "when": "editorHasFocus",
       "shortcut": "ctrl-e"
     }, {
+      "title": "Clear Abbreviation Marker",
+      "command": "emmet.clear-marker",
+      "when": "editorHasFocus"
+    }, {
       "title": "Balance",
       "command": "emmet.balance",
       "when": "editorHasFocus",
