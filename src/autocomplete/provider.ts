@@ -40,6 +40,8 @@ export default function createProvider(): EmmetCompletionAssistant {
 
     return {
         provideCompletionItems(editor, ctx) {
+            console.log('provide completions items');
+
             if (!isEnabled()) {
                 return;
             }
@@ -105,6 +107,7 @@ export default function createProvider(): EmmetCompletionAssistant {
             if (!isEnabled()) {
                 return;
             }
+            console.log('handle change');
 
             const key = getId(editor);
             const pos = getCaret(editor);
@@ -116,6 +119,7 @@ export default function createProvider(): EmmetCompletionAssistant {
                     stopTracking(editor);
                 }
             } else if (allowTracking(editor) && lastPos != null && lastPos === pos - 1) {
+                console.log('start tracking at', pos);
                 startAbbreviationTracking(editor, pos);
             }
             lastPosTracker.set(key, pos);

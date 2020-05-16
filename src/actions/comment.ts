@@ -1,8 +1,8 @@
 import Scanner from '@emmetio/scanner';
 import { scan, createOptions, ElementType, ScannerOptions } from '@emmetio/html-matcher';
 import matchCSS from '@emmetio/css-matcher';
-import { isSpace, getContent, narrowToNonSpace } from '../utils';
-import { isHTML, isXML, isCSS, syntaxInfo, SyntaxCache } from '../syntax';
+import { isSpace, getContent, narrowToNonSpace, toRange } from '../lib/utils';
+import { isHTML, isXML, isCSS, syntaxInfo, SyntaxCache } from '../lib/syntax';
 
 interface Block {
     range: Range;
@@ -47,7 +47,8 @@ nova.commands.register('emmet.comment', editor => {
             } else {
                 // No matching block, comment line
                 const line = editor.getLineRangeForRange(sel);
-                addComment(edit, narrowToNonSpace(editor, line), tokens);
+                const innerRange = narrowToNonSpace(editor, [line.start, line.end]);
+                addComment(edit, toRange(innerRange), tokens);
             }
         }
     });

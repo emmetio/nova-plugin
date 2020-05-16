@@ -1,5 +1,5 @@
-import { getCaret, replaceWithSnippet } from '../utils';
-import { evaluateMath } from '../emmet';
+import { getCaret, replaceWithSnippet } from '../lib/utils';
+import { evaluateMath } from '../lib/emmet';
 
 nova.commands.register('emmet.evaluate-math', editor => {
     const caret = getCaret(editor);

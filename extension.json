@@ -126,13 +126,21 @@
     "title": "Enable auto-complete",
     "description": "When enabled, parses abbreviation as-you-type in known document syntaxes (HTML, CSS etc.) and displays auto-complete popup with expanded preview. Expand it as a regular completion, with Tab or Enter.\nNote that you can always expand abbreviation with Emmet > Expand Abbreviation action in any document event if this option disabled.",
     "type": "boolean",
-    "default": true
+    "default": true,
+    "children": [{
+      "key": "emmet.preview-completion",
+      "title": "Abbreviation preview",
+      "description": "Display expanded abbreviation preview in completions pop-up.",
+      "type": "boolean",
+      "default": true
+    }]
   }, {
-    "key": "emmet.self-closing-style",
-    "title": "Self-closing tag style in HTML",
+    "key": "emmet.code-style",
+    "title": "Output code style",
     "type": "enum",
-    "values": ["<br>", "<br />"],
-    "default": "<br>"
+    "values": ["HTML", "XHTML", "XML"],
+    "default": "HTML",
+    "description": "Defines how self-closing tags (like <img> or <br>) and boolean attributes (like disabled) will look in generated code."
   }, {
     "key": "emmet.attribute-quotes",
     "title": "Attribute quotes",
@@ -156,6 +164,12 @@
     "key": "emmet.bem",
     "title": "Enable BEM support",
     "description": "When enabled, treats `-` and `_` at the beginning of the class name as BEM element and modifier. For example, `.block.-elem` would be the same as `.block.block__elem`.",
+    "type": "boolean",
+    "default": false
+  }, {
+    "key": "emmet.shortHex",
+    "title": "Use short HEX colors in CSS",
+    "description": "When enabled, tries to shorten generated HEX color values for CSS abbreviations. For example, `c#0` abbreviation can be expanded either to `color: #000;` or `color: #000000;`",
     "type": "boolean",
     "default": false
   }]

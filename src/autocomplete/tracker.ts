@@ -1,4 +1,4 @@
-import { getCaret } from '../utils';
+import { getCaret, toRange } from '../utils';
 import { ActivationContext } from './context';
 
 export type TextRange = [number, number];
@@ -61,6 +61,7 @@ export function handleChange(editor: TextEditor): Tracker | undefined {
     if (range[1] <= range[0]) {
         stopTracking(editor);
     } else {
+        console.log('tracked value:', editor.getTextInRange(toRange(range)));
         return tracker;
     }
 }
@@ -92,6 +93,7 @@ export function startTracking(editor: TextEditor, start: number, pos: number): T
         lastLength: editor.document.length,
         range: [start, pos]
     });
+    console.log('start tracking', [start, pos]);
     return cache.get(key)!;
 }
 

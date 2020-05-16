@@ -1,12 +1,14 @@
-import { getOpenTag } from '@emmetio/action-utils'
+import { getOpenTag, getCSSSection, CSSProperty } from '@emmetio/action-utils'
 import { AttributeToken } from '@emmetio/html-matcher';
-import { cssSection, NovaCSSProperty } from '../emmet';
-import { getContent, attributeValue, isURL, locateFile, readFile, attributeRange, patchAttribute, patchProperty, getCaret } from '../utils'
 import imageSize from '../lib/image-size';
-import { isHTML, isCSS, syntaxInfo } from '../syntax';
+import { isHTML, isCSS, syntaxInfo } from '../lib/syntax';
+import {
+    getContent, attributeValue, isURL, locateFile, readFile, attributeRange,
+    patchAttribute, patchProperty, getCaret, substr, rangeContains, toRange
+} from '../lib/utils'
 
 type HTMLAttributeMap = { [name: string]: AttributeToken };
-type CSSPropertyMap = { [name: string]: NovaCSSProperty };
+type CSSPropertyMap = { [name: string]: CSSProperty };
 
 nova.commands.register('emmet.update-image-size', editor => {
     const caret = getCaret(editor);
@@ -47,19 +49,19 @@ async function updateImageSizeHTML(editor: TextEditor, pos: number) {
  * Updates image size in CSS context
  */
 async function updateImageSizeCSS(editor: TextEditor, pos: number) {
-    const section = cssSection(getContent(editor), pos, true);
+    const section = getCSSSection(getContent(editor), pos, true);
 
     // Store all properties in lookup table and find matching URL
     const props: CSSPropertyMap = {};
     let src: string | undefined;
-    let contextProp: NovaCSSProperty | undefined;
+    let contextProp: CSSProperty | undefined;
 
     if (section && section.properties) {
         for (const p of section.properties) {
-            props[editor.getTextInRange(p.name)] = p;
+            props[substr(editor, p.name)] = p;
 
             // If value matches caret location, find url(...) token for it
-            if (p.value.containsIndex(pos)) {
+            if (rangeContains(p.value, pos)) {
                 contextProp = p;
                 src = getCSSUrl(editor, p, pos);
             }
@@ -76,10 +78,10 @@ async function updateImageSizeCSS(editor: TextEditor, pos: number) {
     }
 }
 
-function getCSSUrl(editor: TextEditor, cssProp: NovaCSSProperty, pos: number): string | undefined {
+function getCSSUrl(editor: TextEditor, cssProp: CSSProperty, pos: number): string | undefined {
     for (const v of cssProp.valueTokens) {
-        const m = v.containsIndex(pos)
-            ? editor.getTextInRange(v).match(/url\([\'"]?(.+?)[\'"]?\)/)
+        const m = rangeContains(v, pos)
+            ? substr(editor, v).match(/url\([\'"]?(.+?)[\'"]?\)/)
             : null;
         if (m) {
             return m[1];
@@ -136,12 +138,12 @@ function patchHTMLSize(editor: TextEditor, attrs: HTMLAttributeMap, width: numbe
         const wr = attributeRange(widthAttr);
         const hr = attributeRange(heightAttr);
         editor.edit(edit => {
-            if (wr.start < hr.start) {
-                edit.replace(hr, patchAttribute(heightAttr, height));
-                edit.replace(wr, patchAttribute(widthAttr, width));
+            if (wr[0] < hr[0]) {
+                edit.replace(toRange(hr), patchAttribute(heightAttr, height));
+                edit.replace(toRange(wr), patchAttribute(widthAttr, width));
             } else {
-                edit.replace(wr, patchAttribute(widthAttr, width));
-                edit.replace(hr, patchAttribute(heightAttr, height));
+                edit.replace(toRange(wr), patchAttribute(widthAttr, width));
+                edit.replace(toRange(hr), patchAttribute(heightAttr, height));
             }
         });
     } else if (widthAttr || heightAttr) {
@@ -149,7 +151,7 @@ function patchHTMLSize(editor: TextEditor, attrs: HTMLAttributeMap, width: numbe
         const attr = widthAttr || heightAttr;
         const data = `${patchAttribute(attr, width, 'width')} ${patchAttribute(attr, height, 'height')}`;
         editor.edit(edit => {
-            edit.replace(attributeRange(attr), data);
+            edit.replace(toRange(attributeRange(attr)), data);
         });
     } else if ('src' in attrs) {
         // At least 'src' attribute should be available
@@ -162,7 +164,7 @@ function patchHTMLSize(editor: TextEditor, attrs: HTMLAttributeMap, width: numbe
     }
 }
 
-function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, height: number, contextProp: NovaCSSProperty) {
+function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, height: number, contextProp: CSSProperty) {
     const widthVal = width + 'px';
     const heightVal = height + 'px';
     const widthProp = props.width;
@@ -172,11 +174,11 @@ function patchCSSSize(editor: TextEditor, props: CSSPropertyMap, width: number, 
         // We have both properties, patch them
         editor.edit(edit => {
             if (widthProp.before < heightProp.before) {
-                edit.replace(heightProp.value, heightVal);
-                edit.replace(widthProp.value, widthVal);
+                edit.replace(toRange(heightProp.value), heightVal);
+                edit.replace(toRange(widthProp.value), widthVal);
             } else {
-                edit.replace(widthProp.value, widthVal);
-                edit.replace(heightProp.value, heightVal);
+                edit.replace(toRange(widthProp.value), widthVal);
+                edit.replace(toRange(heightProp.value), heightVal);
             }
         });
     } else if (widthProp || heightProp) {

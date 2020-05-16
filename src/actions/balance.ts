@@ -1,6 +1,6 @@
-import { getContent, toRange, getCaret } from '../utils';
-import { isCSS, isXML, syntaxInfo } from '../syntax';
-import { balanceCSS, balance } from '../emmet';
+import { getContent, toRange, getCaret } from '../lib/utils';
+import { isCSS, isXML, syntaxInfo } from '../lib/syntax';
+import { balanceCSS, balance } from '../lib/emmet';
 
 nova.commands.register('emmet.balance', editor => balanceAction(editor));
 nova.commands.register('emmet.balance-inward', editor => balanceAction(editor, true));

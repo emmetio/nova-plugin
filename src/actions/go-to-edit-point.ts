@@ -1,4 +1,4 @@
-import { getContent, isQuote, isSpace, getCaret } from '../utils';
+import { getContent, isQuote, isSpace, getCaret } from '../lib/utils';
 
 nova.commands.register('emmet.go-to-next-edit-point', editor => goToEditPoint(editor, 1));
 nova.commands.register('emmet.go-to-previous-edit-point', editor => goToEditPoint(editor, -1));

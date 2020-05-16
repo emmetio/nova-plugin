@@ -1,5 +1,5 @@
 import { isNumber } from '@emmetio/scanner';
-import { replaceWithSnippet } from '../utils';
+import { replaceWithSnippet } from '../lib/utils';
 
 nova.commands.register('emmet.increment-number-1', ed => incrementNumber(ed, 1));
 nova.commands.register('emmet.decrement-number-1', ed => incrementNumber(ed, -1));

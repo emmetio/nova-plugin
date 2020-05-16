@@ -1,6 +1,7 @@
-import { UserConfig } from 'emmet'
-import { ContextTag, getOptions, expand, getTagContext } from '../emmet';
-import { narrowToNonSpace } from '../utils';
+import { TextRange } from '@emmetio/action-utils';
+import { getOptions, expand, getTagContext } from '../lib/emmet';
+import { narrowToNonSpace, toRange, replaceWithSnippet } from '../lib/utils';
+import { syntaxInfo, isHTML } from '../lib/syntax';
 
 let lastAbbr = '';
 
@@ -13,16 +14,12 @@ nova.commands.register('emmet.wrap-with-abbreviation', editor => {
 
         lastAbbr = value;
         const options = getOptions(editor, sel.start);
-        const range = getWrapRange(editor, sel, options);
-        options.context = getTagContext(editor, sel.start);
+        const range = getWrapRange(editor, sel);
         options.text = getWrapContent(editor, range, true);
 
         try {
-            const snippet = expand(value, options);
-            editor.edit(edit => {
-                edit.delete(range);
-                edit.insert(range.start, snippet);
-            });
+            const snippet = expand(editor, value, options);
+            replaceWithSnippet(editor, range, snippet);
         } catch (err) {
             let msg = 'Abbreviation is invalid';
             if (err && err.pos) {
@@ -37,23 +34,26 @@ nova.commands.register('emmet.wrap-with-abbreviation', editor => {
 /**
  * Returns region to wrap with abbreviation
  */
-function getWrapRange(editor: TextEditor, sel: Range, options: UserConfig): Range {
-    if (sel.empty && options.context) {
+function getWrapRange(editor: TextEditor, sel: Range): Range {
+    const pt = sel.start;
+    const { syntax } = syntaxInfo(editor, pt);
+    if (sel.empty && isHTML(syntax)) {
         // If there’s no selection than user wants to wrap current tag container
-        const ctx = options.context as ContextTag;
-        const pt = sel.start;
+        const ctx = getTagContext(editor, pt);
 
-        // Check how given point relates to matched tag:
-        // if it's in either open or close tag, we should wrap tag itself,
-        // otherwise we should wrap its contents
-        const { open, close } = ctx;
+        if (ctx) {
+            // Check how given point relates to matched tag:
+            // if it's in either open or close tag, we should wrap tag itself,
+            // otherwise we should wrap its contents
+            const { open, close } = ctx;
 
-        if (inRange(open, pt) || (close && inRange(close, pt))) {
-            return new Range(open.start, close ? close.end : open.end);
-        }
+            if (inRange(open, pt) || (close && inRange(close, pt))) {
+                return new Range(open[0], close ? close[1] : open[1]);
+            }
 
-        if (close) {
-            return narrowToNonSpace(editor, new Range(open.end, close.start));
+            if (close) {
+                return toRange(narrowToNonSpace(editor, [open[1], close[0]]));
+            }
         }
     }
 
@@ -82,6 +82,6 @@ function getWrapContent(editor: TextEditor, range: Range, splitLines = false): s
     return splitLines ? destLines : destLines.join('\n');
 }
 
-function inRange(range: Range, pt: number) {
-    return range.start < pt && pt < range.end;
+function inRange(range: TextRange, pt: number) {
+    return range[0] < pt && pt < range[1];
 }

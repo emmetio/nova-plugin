@@ -1,7 +1,7 @@
 import { TextRange } from '@emmetio/action-utils';
-import { isCSS, isHTML, syntaxInfo } from '../syntax';
-import { getContent, toRange } from '../utils';
-import { selectItem } from '../emmet';
+import { isCSS, isHTML, syntaxInfo } from '../lib/syntax';
+import { getContent, toRange } from '../lib/utils';
+import { selectItem } from '../lib/emmet';
 
 nova.commands.register('emmet.select-next-item', editor => selectItemAction(editor));
 nova.commands.register('emmet.select-previous-item', editor => selectItemAction(editor, true));

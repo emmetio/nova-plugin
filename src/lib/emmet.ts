@@ -1,11 +1,13 @@
-import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options, ExtractOptions } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options, ExtractOptions, resolveConfig, MarkupAbbreviation, StylesheetAbbreviation } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
-import { selectItemCSS, selectItemHTML, getCSSSection, CSSProperty, CSSSection } from '@emmetio/action-utils';
+import { selectItemCSS, selectItemHTML, TextRange } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isCSS, isSupported, isHTML } from './syntax';
-import { getContent, toRange, isQuotedString } from './utils';
-import { getCSSContext, getHTMLContext } from './autocomplete/context';
+import { isXML, syntaxInfo, isCSS, isSupported, docSyntax } from './syntax';
+import { getContent, isQuotedString } from './utils';
+import getAbbreviationContext, { getCSSContext, getHTMLContext } from './context';
+import getEmmetConfig from './config';
+import getOutputOptions, { field } from './output';
 
 interface EvaluatedMath {
     start: number;
@@ -15,41 +17,14 @@ interface EvaluatedMath {
 }
 
 export interface ContextTag extends AbbreviationContext {
-    open: Range;
-    close?: Range;
+    open: TextRange;
+    close?: TextRange;
 }
-
-export type NovaCSSProperty = CSSProperty<Range>;
-export type NovaCSSSection = CSSSection<NovaCSSProperty>;
 
 export interface ExtractedAbbreviationWithContext extends ExtractedAbbreviation {
     context?: AbbreviationContext;
     inline?: boolean;
 }
-
-export const JSX_PREFIX = '<';
-
-export const knownTags = [
-    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
-    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
-    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'content',
-    'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
-    'em', 'embed',
-    'fieldset', 'figcaption', 'figure', 'footer', 'form',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html',
-    'i', 'iframe', 'img', 'input', 'ins',
-    'kbd', 'keygen',
-    'label', 'legend', 'li', 'link',
-    'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter',
-    'nav', 'noscript',
-    'object', 'ol', 'optgroup', 'option', 'output',
-    'p', 'param', 'picture', 'pre', 'progress',
-    'q',
-    'rp', 'rt', 'rtc', 'ruby',
-    's', 'samp', 'script', 'section', 'select', 'shadow', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup',
-    'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
-    'u', 'ul', 'var', 'video', 'wbr'
-];
 
 /**
  * Cache for storing internal Emmet data.
@@ -57,15 +32,33 @@ export const knownTags = [
  */
 let cache = {};
 
+export const JSX_PREFIX = '<';
+
 /**
  * Expands given abbreviation into code snippet
  */
-export function expand(abbr: string, config?: UserConfig) {
-    // TODO get global options from config
-    if (config && !config.cache) {
-        config = { ...config, cache };
+export function expand(editor: TextEditor, abbr: string | MarkupAbbreviation | StylesheetAbbreviation, config?: UserConfig) {
+    let opt: UserConfig = { cache };
+    const outputOpt: Partial<Options> = {
+        'output.field': field,
+        'output.format': !config || !config['inline'],
+    };
+
+    if (config) {
+        Object.assign(opt, config);
+        if (config.options) {
+            Object.assign(outputOpt, config.options);
+        }
     }
-    return expandAbbreviation(abbr, config);
+
+    opt.options = outputOpt;
+
+    const pluginConfig = getEmmetConfig();
+    if (pluginConfig.config) {
+        opt = resolveConfig(opt, pluginConfig.config);
+    }
+
+    return expandAbbreviation(abbr as string, opt);
 }
 
 /**
@@ -135,27 +128,6 @@ export function selectItem(code: string, pos: number, isCSS?: boolean, isPreviou
 }
 
 /**
- * Find enclosing CSS section and returns its ranges with (optionally) parsed properties
- */
-export function cssSection(code: string, pos: number, properties?: boolean): NovaCSSSection | undefined {
-    let section = getCSSSection(code, pos, properties);
-    if (section) {
-        const cssSection = { ...section } as NovaCSSSection;
-        if (section.properties) {
-            // Convert property range to Nova ranges
-            cssSection.properties = section.properties.map(prop => ({
-                ...prop,
-                name: toRange(prop.name),
-                value: toRange(prop.value),
-                valueTokens: prop.valueTokens.map(toRange)
-            }));
-        }
-
-        return cssSection;
-    }
-}
-
-/**
  * Finds and evaluates math expression at given position in line
  */
 export function evaluateMath(code: string, pos: number, options?: Partial<MathExtractOptions>): EvaluatedMath | undefined {
@@ -185,7 +157,7 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
 
     if (xml == null) {
         // Autodetect XML dialect
-        const syntax = editor.document.syntax;
+        const syntax = docSyntax(editor);
         xml = syntax ? isXML(syntax) : false;
     }
 
@@ -194,8 +166,8 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
         const { open, close } = matchedTag;
         ctx = {
             name: matchedTag.name,
-            open: toRange(open),
-            close: close && toRange(close)
+            open,
+            close
         };
 
         if (matchedTag.attributes) {
@@ -217,61 +189,18 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
 /**
  * Returns Emmet options for given character location in editor
  */
-export function getOptions(editor: TextEditor, pos: number): UserConfig {
+export function getOptions(editor: TextEditor, pos: number, withContext = false): UserConfig {
     const info = syntaxInfo(editor, pos);
     const config = info as UserConfig;
     if (!config.syntax) {
         config.syntax = 'html';
     }
 
-    config.options = getOutputOptions(editor, pos, info.inline);
+    if (withContext) {
+        Object.assign(config, getAbbreviationContext(editor, pos));
+    } else {
+        config.options = getOutputOptions(editor, pos, info.inline);
+    }
+
     return config;
-}
-
-export function getOutputOptions(editor: TextEditor, pos = editor.selectedRange.start, inline?: boolean): Partial<Options> {
-    const { syntax } = editor.document;
-    const lineRange = editor.getLineRangeForRange(new Range(pos, pos));
-    const line = editor.getTextInRange(lineRange);
-    const indent = line.match(/^\s+/);
-
-    const opt: Partial<Options> = {
-        'output.baseIndent': indent ? indent[0] : '',
-        'output.indent': editor.tabText,
-        'output.field': field,
-        'output.format': !inline,
-        'output.newline': editor.document.eol,
-        'output.attributeQuotes': nova.config.get('emmet.attribute-quotes', 'string') === 'single' ? 'single' : 'double'
-    };
-
-    if (syntax === 'html') {
-        opt['output.selfClosingStyle'] = nova.config.get('emmet.self-closing-style', 'string') === '<br />'
-            ? 'xhtml' : 'html';
-    }
-
-    if (isHTML(syntax)) {
-        if (nova.config.get('emmet.comment', 'boolean')) {
-            opt['comment.enabled'] = true;
-            const template = nova.config.get('emmet.comment-template', 'string');
-            if (template) {
-                opt['comment.after'] = template.replace(/\\n/g, '\n');
-            }
-        }
-
-        if (nova.config.get('emmet.bem', 'boolean')) {
-            opt['bem.enabled'] = true;
-        }
-    }
-
-    return opt;
-}
-
-/**
- * Produces tabstop for Nova editor
- */
-function field(index: number, placeholder: string) {
-    return `$[${placeholder || ''}]`;
-    // if (placeholder) {
-    //     return `\${${index}:${placeholder}}`;
-    // }
-    // return `$${index}`;
 }

@@ -1,6 +1,6 @@
-import { getCaret } from '../utils';
-import { isHTML, isXML, syntaxInfo } from '../syntax';
-import { getTagContext } from '../emmet';
+import { getCaret, rangeContains } from '../lib/utils';
+import { isHTML, isXML, syntaxInfo } from '../lib/syntax';
+import { getTagContext } from '../lib/emmet';
 
 nova.commands.register('emmet.go-to-tag-pair', editor => {
     let caret = getCaret(editor);
@@ -14,9 +14,9 @@ nova.commands.register('emmet.go-to-tag-pair', editor => {
         const ctx = getTagContext(editor, caret, isXML(syntax));
         if (ctx && ctx.open && ctx.close) {
             const { open, close } = ctx;
-            const nextPos = open.containsIndex(caret)
-                ? close.start
-                : open.start;
+            const nextPos = rangeContains(open, caret)
+                ? close[0]
+                : open[0];
 
             editor.selectedRange = new Range(nextPos, nextPos);
             editor.scrollToCursorPosition();

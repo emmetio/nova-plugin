@@ -1,8 +1,7 @@
 import { AttributeToken } from '@emmetio/html-matcher';
-import { getOpenTag } from '@emmetio/action-utils';
-import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp, replaceWithSnippet } from '../utils';
-import { cssSection, NovaCSSProperty } from '../emmet';
-import { isHTML, isCSS, syntaxInfo } from '../syntax';
+import { getOpenTag, getCSSSection, CSSProperty } from '@emmetio/action-utils';
+import { getCaret, getContent, isURL, locateFile, readFile, isQuoted, resolveFilePath, mkdirp, replaceWithSnippet, rangeContains, substr } from '../lib/utils';
+import { isHTML, isCSS, syntaxInfo } from '../lib/syntax';
 import { b64encode, b64decode } from '../lib/base64';
 
 const mimeTypes = {
@@ -55,7 +54,7 @@ function convertHTML(editor: TextEditor, pos: number) {
  * Convert to/from data:URL for CSS context
  */
 function convertCSS(editor: TextEditor, pos: number) {
-    const section = cssSection(getContent(editor), pos, true);
+    const section = getCSSSection(getContent(editor), pos, true);
 
     if (!section || !section.properties) {
         return;
@@ -64,7 +63,7 @@ function convertCSS(editor: TextEditor, pos: number) {
     // Find value token with `url(...)` value under caret
     for (const p of section.properties) {
         // If value matches caret location, find url(...) token for it
-        if (p.value.containsIndex(pos)) {
+        if (rangeContains(p.value, pos)) {
             const token = getURLRange(editor, p, pos);
             if (token) {
                 toggleURL(editor, token);
@@ -167,13 +166,13 @@ function attrValueRange(attr: AttributeToken): Range | undefined {
 /**
  * Returns region of matched `url()` token from given value
  */
-function getURLRange(view: TextEditor, cssProp: NovaCSSProperty, pos: number): Range | undefined {
+function getURLRange(view: TextEditor, cssProp: CSSProperty, pos: number): Range | undefined {
     for (const v of cssProp.valueTokens) {
-        const m = v.containsIndex(pos)
-            ? view.getTextInRange(v).match(/(url\([\'"]?)(.+?)[\'"]?\)/)
+        const m =  rangeContains(v, pos)
+            ? substr(view, v).match(/(url\([\'"]?)(.+?)[\'"]?\)/)
             : null;
         if (m) {
-            return new Range(v.start + m[1].length, v.start + m[1].length + m[2].length);
+            return new Range(v[0] + m[1].length, v[0] + m[1].length + m[2].length);
         }
     }
 }

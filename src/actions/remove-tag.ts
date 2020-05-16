@@ -1,6 +1,7 @@
 import { isSpace } from '@emmetio/scanner';
-import { getTagContext, ContextTag } from '../emmet';
-import { narrowToNonSpace, getContent, isSpace as isSpaceText } from '../utils';
+import { TextRange } from '@emmetio/action-utils';
+import { getTagContext, ContextTag } from '../lib/emmet';
+import { narrowToNonSpace, getContent, isSpace as isSpaceText, rangeEmpty, toRange } from '../lib/utils';
 
 nova.commands.register('emmet.remove-tag', editor => {
     editor.edit(edit => {
@@ -8,8 +9,9 @@ nova.commands.register('emmet.remove-tag', editor => {
         for (const sel of editor.selectedRanges.slice().reverse()) {
             const tag = getTagContext(editor, sel.start);
             if (tag) {
+                const pos = tag.open[0];
                 removeTag(editor, edit, tag);
-                nextRanges.push(new Range(tag.open.start, tag.open.start));
+                nextRanges.push(new Range(pos, pos));
             } else {
                 nextRanges.push(sel);
             }
@@ -22,13 +24,13 @@ nova.commands.register('emmet.remove-tag', editor => {
 function removeTag(editor: TextEditor, edit: TextEditorEdit, { open, close }: ContextTag) {
     if (close) {
         // Remove open and close tag and dedent inner content
-        const innerRange = narrowToNonSpace(editor, new Range(open.end, close.start));
-        if (!innerRange.empty) {
+        const innerRange = narrowToNonSpace(editor, [open[1], close[0]]);
+        if (!rangeEmpty(innerRange)) {
             // Gracefully remove open and close tags and tweak indentation on tag contents
-            edit.delete(new Range(innerRange.end, close.end));
+            edit.delete(new Range(innerRange[1], close[1]));
 
-            const baseIndent = getLineIndent(editor, open.start);
-            const innerIndent = getLineIndent(editor, innerRange.start);
+            const baseIndent = getLineIndent(editor, open[0]);
+            const innerIndent = getLineIndent(editor, innerRange[0]);
             const innerLines = getLineRanges(editor, innerRange).slice(1).reverse();
 
             for (const line of innerLines) {
@@ -39,12 +41,12 @@ function removeTag(editor: TextEditor, edit: TextEditorEdit, { open, close }: Co
                 }
             }
 
-            edit.delete(new Range(open.start, innerRange.start));
+            edit.delete(new Range(open[0], innerRange[0]));
         } else {
-            edit.delete(open.union(close));
+            edit.delete(new Range(open[0], close[1]));
         }
     } else {
-        edit.delete(open);
+        edit.delete(toRange(open));
     }
 }
 
@@ -68,10 +70,10 @@ function getLineIndent(view: TextEditor, line: Range | number): string {
 /**
  * Returns list of all line ranges for given range
  */
-function getLineRanges(editor: TextEditor, range: Range): Range[] {
-    let offset = range.start;
+function getLineRanges(editor: TextEditor, range: TextRange): Range[] {
+    let offset = range[0];
     const lines: Range[] = [];
-    while (offset < range.end) {
+    while (offset < range[1]) {
         const line = editor.getLineRangeForRange(new Range(offset, offset));
         lines.push(line);
         if (offset === line.end) {

@@ -1,6 +1,6 @@
 import { isXML, syntaxInfo, SyntaxCache } from '../syntax';
-import { getTagContext } from '../emmet';
-import { isSpace } from '../utils';
+import { getTagContext } from '../lib/emmet';
+import { isSpace } from '../lib/utils';
 
 nova.commands.register('emmet.split-join-tag', editor => {
     const selections = editor.selectedRanges.slice().reverse();
@@ -18,26 +18,26 @@ nova.commands.register('emmet.split-join-tag', editor => {
                 const { open, close } = tag;
                 if (close) {
                     // Join tag: remove tag contents, if any, and add closing slash
-                    edit.delete(new Range(open.end, close.end));
-                    let closing = isSpace(getChar(editor, open.end - 2)) ? '/' : ' /';
-                    edit.insert(open.end - 1, closing);
-                    nextRanges.push(createRange(open.end + closing.length));
+                    edit.delete(new Range(open[1], close[1]));
+                    let closing = isSpace(getChar(editor, open[1] - 2)) ? '/' : ' /';
+                    edit.insert(open[1] - 1, closing);
+                    nextRanges.push(createRange(open[1] + closing.length));
                 } else {
                     // Split tag: add closing part and remove closing slash
                     const endTag = `</${tag.name}>`;
 
-                    edit.insert(open.end, endTag);
-                    if (getChar(editor, open.end - 2) === '/') {
-                        let start = open.end - 2;
-                        let end = open.end - 1;
+                    edit.insert(open[1], endTag);
+                    if (getChar(editor, open[1] - 2) === '/') {
+                        let start = open[1] - 2;
+                        let end = open[1] - 1;
                         if (isSpace(getChar(editor, start - 1))) {
                             start--;
                         }
 
                         edit.delete(new Range(start, end));
-                        nextRanges.push(createRange(open.end - end + start));
+                        nextRanges.push(createRange(open[1] - end + start));
                     } else {
-                        nextRanges.push(createRange(open.end));
+                        nextRanges.push(createRange(open[1]));
                     }
                 }
             } else {
