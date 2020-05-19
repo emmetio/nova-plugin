@@ -12,7 +12,7 @@ export default function getOutputOptions(editor: TextEditor, pos = editor.select
     const opt: Partial<Options> = {
         'output.baseIndent': indent ? indent[0] : '',
         'output.indent': editor.tabText,
-        'output.field': field,
+        'output.field': field(),
         'output.format': !inline,
         'output.attributeQuotes': config.attributeQuotes
     };
@@ -40,10 +40,18 @@ export default function getOutputOptions(editor: TextEditor, pos = editor.select
 /**
  * Produces tabstop for Nova editor
  */
-export function field(index: number, placeholder: string) {
-    return `$[${placeholder || ''}]`;
-    // if (placeholder) {
-    //     return `\${${index}:${placeholder}}`;
-    // }
-    // return `$${index}`;
+export function field() {
+    let handled = false;
+    return (index: number, placeholder: string) => {
+        if (placeholder) {
+            return `$[${placeholder}]`;
+        }
+
+        if (!handled) {
+            handled = true;
+            return '$[]';
+        }
+
+        return '';
+    };
 }
