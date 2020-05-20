@@ -2,6 +2,7 @@ import { UserConfig, markupAbbreviation, MarkupAbbreviation, stylesheetAbbreviat
 import { TextRange } from '@emmetio/action-utils';
 import { substr, toRange, getCaret, getContent, AbbrError, replaceWithSnippet } from '../lib/utils';
 import { getOptions, expand } from '../lib/emmet';
+import { field } from '../lib/output';
 
 interface AbbrBase {
     abbr: string;
@@ -82,6 +83,9 @@ export default class AbbreviationTracker {
 
         if (!this.options) {
             this.options = getOptions(editor, this.range[0], true);
+        } else {
+            // Replace field on each update to reset its internal state
+            this.options.options!['output.field'] = field();
         }
 
         this.abbreviation = null;
@@ -199,6 +203,7 @@ export function handleChange(editor: TextEditor): AbbreviationTracker | undefine
         return
     }
 
+    const lastAbbr = { ...tracker.abbreviation } as ParsedAbbreviation;
     const length = getContent(editor).length;
     const pos = getCaret(editor);
     const delta = length - tracker.lastLength;
@@ -222,10 +227,22 @@ export function handleChange(editor: TextEditor): AbbreviationTracker | undefine
     // Ensure range is in valid state
     if (!tracker.isValidRange()) {
         stopTracking(editor);
-    } else {
-        tracker.updateAbbreviation(editor);
-        return tracker;
+        return;
     }
+
+    tracker.updateAbbreviation(editor);
+
+    // Check for edge case: updated abbreviation is invalid and
+    // previous state was valid and its preview is the same as new abbreviation:
+    // wew expanded abbreviation via completion item
+    if (tracker.abbreviation?.type === 'error' && lastAbbr.type === 'abbreviation') {
+        if (tracker.abbreviation.abbr === lastAbbr.preview) {
+            stopTracking(editor);
+            return;
+        }
+    }
+
+    return tracker;
 }
 
 export function handleSelectionChange(editor: TextEditor, caret = getCaret(editor)): AbbreviationTracker | undefined {

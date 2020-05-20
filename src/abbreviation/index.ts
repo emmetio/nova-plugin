@@ -153,10 +153,15 @@ function shouldStopTracking(tracker: AbbreviationTracker, pos: number): boolean 
     }
 
     // Reset if user entered invalid character at the end of abbreviation
-    // or at the edge of auto - inserted paried character like`)` or`]`
+    // or at the edge of auto-inserted paired character like`)` or`]`
     if (tracker.abbreviation.type === 'error') {
         if (tracker.range[1] === pos) {
             // Last entered character is invalid
+            return true;
+        }
+
+        if (tracker.abbreviation.error.pos === 0) {
+            // Most likely it’s an expanded abbreviation
             return true;
         }
 
