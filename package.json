@@ -15,16 +15,16 @@
   "author": "Sergey Chikuyonok <serge.che@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@emmetio/abbreviation": "^2.0.0",
-    "@emmetio/css-abbreviation": "^2.0.0",
+    "@emmetio/abbreviation": "^2.0.2",
+    "@emmetio/css-abbreviation": "^2.0.1",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^13.9.2",
-    "mocha": "^7.1.1",
-    "rollup": "^2.1.0",
+    "@types/node": "^13.13.6",
+    "mocha": "^7.1.2",
+    "rollup": "^2.10.4",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.26.0",
-    "ts-node": "^8.7.0",
-    "typescript": "^3.8.3"
+    "ts-node": "^8.10.1",
+    "typescript": "^3.9.2"
   },
   "dependencies": {
     "@emmetio/action-utils": "^1.0.5",
@@ -32,7 +32,7 @@
     "@emmetio/html-matcher": "^1.2.3",
     "@emmetio/math-expression": "^1.0.4",
     "@emmetio/scanner": "^1.0.0",
-    "emmet": "^2.0.0"
+    "emmet": "^2.0.2"
   },
   "mocha": {
     "require": "./test/register",
