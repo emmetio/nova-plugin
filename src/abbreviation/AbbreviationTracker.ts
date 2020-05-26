@@ -82,7 +82,7 @@ export default class AbbreviationTracker {
         }
 
         if (!this.options) {
-            this.options = getOptions(editor, this.range[0], true);
+            this.options = getOptions(editor, this.range[0]);
         } else {
             // Replace field on each update to reset its internal state
             this.options.options!['output.field'] = field();
