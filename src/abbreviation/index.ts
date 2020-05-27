@@ -2,7 +2,10 @@ import { UserConfig } from 'emmet';
 import { getCSSContext, getHTMLContext, CSSContext } from '@emmetio/action-utils';
 import { TokenType } from '@emmetio/css-matcher';
 import AbbreviationTracker, { handleChange, stopTracking, startTracking } from './AbbreviationTracker';
-import { isSupported, isJSX, isCSS, isHTML, docSyntax, isXML, getEmbeddedStyleSyntax, getStylesheetAbbreviationContext, getMarkupAbbreviationContext } from '../lib/syntax';
+import {
+    isSupported, isJSX, isCSS, isHTML, docSyntax, isXML, getEmbeddedStyleSyntax,
+    getStylesheetAbbreviationContext, getMarkupAbbreviationContext, getSyntaxType
+} from '../lib/syntax';
 import { getCaret, substr, getContent } from '../lib/utils';
 import { JSX_PREFIX, extract } from '../lib/emmet';
 import getOutputOptions from '../lib/output';
@@ -80,12 +83,13 @@ export function isEnabled(): boolean {
  */
 export function extractTracker(editor: TextEditor, ctx: CompletionContext): AbbreviationTracker | undefined {
     const syntax = docSyntax(editor);
-    const prefix = isJSX(syntax) ? JSX_PREFIX : ''
-    const abbr = extract(getContent(editor), ctx.position, syntax, { prefix });
+    const prefix = isJSX(syntax) ? JSX_PREFIX : '';
+    const options = getActivationContext(editor, ctx.position);
+    const abbr = extract(getContent(editor), ctx.position, getSyntaxType(options?.syntax), { prefix });
     if (abbr) {
         return startTracking(editor, abbr.start, abbr.end, {
             offset: prefix.length,
-            options: getActivationContext(editor, abbr.start + 1)
+            options
         });
     }
 }
@@ -219,6 +223,8 @@ function getActivationContext(editor: TextEditor, pos: number): UserConfig | und
             };
         }
     }
+
+    return { syntax, type: 'markup' };
 }
 
 function getCSSActivationContext(editor: TextEditor, pos: number, syntax: string, ctx: CSSContext): UserConfig | undefined {

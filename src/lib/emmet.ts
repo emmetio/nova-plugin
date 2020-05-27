@@ -1,11 +1,10 @@
-import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options, ExtractOptions, resolveConfig, MarkupAbbreviation, StylesheetAbbreviation } from 'emmet';
+import expandAbbreviation, { extract as extractAbbreviation, UserConfig, AbbreviationContext, ExtractedAbbreviation, Options, ExtractOptions, resolveConfig, MarkupAbbreviation, StylesheetAbbreviation, SyntaxType } from 'emmet';
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, TextRange } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isCSS, isSupported, docSyntax, getMarkupAbbreviationContext, getStylesheetAbbreviationContext } from './syntax';
+import { isXML, syntaxInfo, docSyntax, getMarkupAbbreviationContext, getStylesheetAbbreviationContext } from './syntax';
 import { getContent, isQuotedString } from './utils';
-import { getCSSContext, getHTMLContext } from './context';
 import getEmmetConfig from './config';
 import getOutputOptions, { field } from './output';
 
@@ -19,11 +18,6 @@ interface EvaluatedMath {
 export interface ContextTag extends AbbreviationContext {
     open: TextRange;
     close?: TextRange;
-}
-
-export interface ExtractedAbbreviationWithContext extends ExtractedAbbreviation {
-    context?: AbbreviationContext;
-    inline?: boolean;
 }
 
 /**
@@ -92,33 +86,14 @@ export function expand(editor: TextEditor, abbr: string | MarkupAbbreviation | S
  * CSS selectors may not contain abbreviations.
  * @param code Code from which abbreviation should be extracted
  * @param pos Location at which abbreviation should be expanded
- * @param hostSyntax Syntax of `code`. For `html` syntax it detects inline CSS
+ * @param syntax Syntax of abbreviation to expand
  */
-export function extract(code: string, pos: number, hostSyntax = 'html', options?: Partial<ExtractOptions>): ExtractedAbbreviationWithContext | undefined {
-    if (!hostSyntax || !isSupported(hostSyntax)) {
-        // Unknown host syntax: we can’t properly detect abbreviation context,
-        // fallback to basic markup abbreviation
-        return extractAbbreviation(code, pos, options);
-    }
-
-    const ctx = isCSS(hostSyntax)
-        ? getCSSContext(code, pos)
-        : getHTMLContext(code, pos, { xml: isXML(hostSyntax) });
-
-        if (ctx) {
-            const abbrData = extractAbbreviation(code, pos, {
-                lookAhead: !isCSS(ctx.syntax),
-                type: isCSS(ctx.syntax) ? 'stylesheet' : 'markup',
-                ...options
-            }) as ExtractedAbbreviationWithContext;
-
-            if (abbrData) {
-                abbrData.context = ctx.context;
-                abbrData.inline = !!ctx.inline;
-            }
-
-            return abbrData;
-        }
+export function extract(code: string, pos: number, type: SyntaxType = 'markup', options?: Partial<ExtractOptions>): ExtractedAbbreviation | undefined {
+    return extractAbbreviation(code, pos, {
+        lookAhead: type !== 'stylesheet',
+        type,
+        ...options
+    })
 }
 
 /**

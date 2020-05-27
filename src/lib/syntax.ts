@@ -1,7 +1,7 @@
 import { SyntaxType, AbbreviationContext, CSSAbbreviationScope } from 'emmet';
 import { attributes } from '@emmetio/html-matcher';
 import { TokenType } from '@emmetio/css-matcher';
-import { getHTMLContext, CSSContext, HTMLContext } from '@emmetio/action-utils';
+import { getHTMLContext, CSSContext, HTMLContext, getCSSContext } from '@emmetio/action-utils';
 import { getContent, attributeValue, last } from './utils';
 
 const markupSyntaxes = ['html', 'xml', 'xsl', 'jsx', 'haml', 'jade', 'pug', 'slim'];
@@ -44,6 +44,8 @@ export function syntaxInfo(editor: TextEditor, pos: number): SyntaxInfo {
             inline = context.css.inline;
             context = context.css;
         }
+    } else if (isCSS(syntax)) {
+        context = getCSSContext(getContent(editor), pos);
     }
 
     return {

@@ -1,30 +1,11 @@
-import { expand, extract, getOptions, ExtractedAbbreviationWithContext } from '../lib/emmet';
+import { expand, extract, getOptions } from '../lib/emmet';
 import { getCaret, replaceWithSnippet, getContent } from '../lib/utils';
-import { docSyntax, isSupported } from '../lib/syntax';
+import { getSyntaxType } from '../lib/syntax';
 
 nova.commands.register('emmet.expand-abbreviation', editor => {
     const caret = getCaret(editor);
-    const syntax = docSyntax(editor);
-    let abbr: ExtractedAbbreviationWithContext | undefined;
-    const opt = {
-        // prefix: isJSX(syntax) ? '<' : ''
-    };
-
-    // For optimization purposes, use full content scan to extract abbreviation
-    // with supported scope, use current line for unknown
-    if (syntax && isSupported(syntax)) {
-        abbr = extract(getContent(editor), caret, syntax, opt);
-    } else {
-        const lineRange = editor.getLineRangeForRange(new Range(caret, caret));
-        const line = editor.getTextInRange(lineRange);
-
-        abbr = extract(line, caret - lineRange.start, syntax, opt);
-        if (abbr) {
-            abbr.location += lineRange.start;
-            abbr.start += lineRange.start;
-            abbr.end += lineRange.start;
-        }
-    }
+    const options = getOptions(editor, caret);
+    const abbr = extract(getContent(editor), caret, getSyntaxType(options!.syntax));
 
     if (abbr) {
         const options = getOptions(editor, caret);
