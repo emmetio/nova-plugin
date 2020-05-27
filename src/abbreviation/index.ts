@@ -37,7 +37,7 @@ export default function initAbbreviationTracker(editor: TextEditor) {
         const pos = getCaret(ed);
         let tracker = handleChange(ed);
 
-        if (!tracker && lastPos !== null && lastPos === pos - 1 && allowTracking(ed, pos)) {
+        if (!tracker && lastPos !== null && lastPos === pos - 1 && allowTracking(ed)) {
             tracker = startAbbreviationTracking(ed, pos);
         }
 
@@ -62,7 +62,7 @@ export default function initAbbreviationTracker(editor: TextEditor) {
 /**
  * Check if abbreviation tracking is allowed in editor at given location
  */
-function allowTracking(editor: TextEditor, pos: number): boolean {
+function allowTracking(editor: TextEditor): boolean {
     if (isEnabled()) {
         const syntax = docSyntax(editor);
         return isSupported(syntax) || isJSX(syntax);
@@ -222,9 +222,9 @@ function getActivationContext(editor: TextEditor, pos: number): UserConfig | und
                 options: getOutputOptions(editor, pos)
             };
         }
+    } else {
+        return { syntax, type: 'markup' };
     }
-
-    return { syntax, type: 'markup' };
 }
 
 function getCSSActivationContext(editor: TextEditor, pos: number, syntax: string, ctx: CSSContext): UserConfig | undefined {

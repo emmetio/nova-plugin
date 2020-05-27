@@ -4,12 +4,12 @@ import { TokenType } from '@emmetio/css-matcher';
 import { getHTMLContext, CSSContext, HTMLContext, getCSSContext } from '@emmetio/action-utils';
 import { getContent, attributeValue, last } from './utils';
 
-const markupSyntaxes = ['html', 'xml', 'xsl', 'jsx', 'haml', 'jade', 'pug', 'slim'];
-const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'sss', 'stylus', 'postcss'];
 const xmlSyntaxes = ['xml', 'xsl', 'jsx'];
-const htmlSyntaxes = ['html', 'vue'];
+const htmlSyntaxes = ['html', 'vue', 'html+erb', 'php'];
 const cssSyntaxes = ['css', 'scss', 'less'];
 const jsxSyntaxes = ['jsx', 'tsx'];
+const markupSyntaxes = ['haml', 'jade', 'pug', 'slim'].concat(htmlSyntaxes, xmlSyntaxes, jsxSyntaxes);
+const stylesheetSyntaxes = ['sass', 'sss', 'stylus', 'postcss'].concat(cssSyntaxes);
 
 export interface SyntaxInfo {
     type: SyntaxType;

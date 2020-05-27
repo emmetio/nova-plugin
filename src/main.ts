@@ -12,6 +12,7 @@ import './actions/split-join-tag';
 import './actions/update-image-size';
 import './actions/wrap-with-abbreviation';
 import initAbbreviationTracker from './abbreviation';
+import { stopTracking } from './abbreviation/AbbreviationTracker';
 import createAutocompleteProvider from './autocomplete';
 
 export function activate() {
@@ -19,4 +20,8 @@ export function activate() {
     const autocomplete = createAutocompleteProvider()
     nova.workspace.onDidAddTextEditor(initAbbreviationTracker);
     nova.assistants.registerCompletionAssistant('*', autocomplete);
+}
+
+export function deactivate() {
+    nova.workspace.textEditors.forEach(editor => stopTracking(editor, true));
 }
