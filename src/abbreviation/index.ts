@@ -1,10 +1,9 @@
-import { UserConfig, AbbreviationContext, CSSAbbreviationScope } from 'emmet';
-import { getCSSContext, getHTMLContext, CSSContext, HTMLContext } from '@emmetio/action-utils';
-import { attributes } from '@emmetio/html-matcher';
+import { UserConfig } from 'emmet';
+import { getCSSContext, getHTMLContext, CSSContext } from '@emmetio/action-utils';
 import { TokenType } from '@emmetio/css-matcher';
 import AbbreviationTracker, { handleChange, stopTracking, startTracking } from './AbbreviationTracker';
-import { isSupported, isJSX, isCSS, isHTML, docSyntax, isXML } from '../lib/syntax';
-import { getCaret, substr, getContent, attributeValue } from '../lib/utils';
+import { isSupported, isJSX, isCSS, isHTML, docSyntax, isXML, getEmbeddedStyleSyntax, getStylesheetAbbreviationContext, getMarkupAbbreviationContext } from '../lib/syntax';
+import { getCaret, substr, getContent } from '../lib/utils';
 import { JSX_PREFIX, extract } from '../lib/emmet';
 import getOutputOptions from '../lib/output';
 
@@ -80,7 +79,7 @@ export function isEnabled(): boolean {
  * If allowed, tries to extract abbreviation from given completion context
  */
 export function extractTracker(editor: TextEditor, ctx: CompletionContext): AbbreviationTracker | undefined {
-    const { syntax } = editor.document;
+    const syntax = docSyntax(editor);
     const prefix = isJSX(syntax) ? JSX_PREFIX : ''
     const abbr = extract(getContent(editor), ctx.position, syntax, { prefix });
     if (abbr) {
@@ -239,27 +238,10 @@ function getCSSActivationContext(editor: TextEditor, pos: number, syntax: string
         return {
             syntax,
             type: 'stylesheet',
-            context: {
-                name: getCSSAbbreviationContext(ctx)
-            },
+            context: getStylesheetAbbreviationContext(ctx),
             options: getOutputOptions(editor, pos, ctx.inline)
         };
     }
-}
-
-function getCSSAbbreviationContext(ctx: CSSContext): string {
-    const parent = last(ctx.ancestors);
-    if (ctx.current) {
-        if (ctx.current.type === TokenType.PropertyValue && parent) {
-            return parent.name;
-        }
-
-        if (ctx.current.type === TokenType.Selector && !parent) {
-            return CSSAbbreviationScope.Section;
-        }
-    }
-
-    return CSSAbbreviationScope.Global;
 }
 
 /**
@@ -278,35 +260,3 @@ function isTypingBeforeSelector(editor: TextEditor, pos: number, { current }: CS
     return false;
 }
 
-function getMarkupAbbreviationContext(code: string, ctx: HTMLContext): AbbreviationContext | undefined {
-    const parent = last(ctx.ancestors);
-    if (parent) {
-        const attrs: { [name: string]: string } = {};
-        for (const attr of attributes(code.slice(parent.range[0], parent.range[1]), parent.name)) {
-            attrs[attr.name] = attributeValue(attr) || '';
-        }
-
-        return {
-            name: parent.name,
-            attributes: attrs
-        };
-    }
-}
-
-/**
- * Returns embedded style syntax, if any
- */
-function getEmbeddedStyleSyntax(code: string, ctx: HTMLContext): string | undefined {
-    const parent = last(ctx.ancestors);
-    if (parent && parent.name === 'style') {
-        for (const attr of attributes(code.slice(parent.range[0], parent.range[1]), parent.name)) {
-            if (attr.name === 'type') {
-                return attributeValue(attr);
-            }
-        }
-    }
-}
-
-function last<T>(arr: T[]): T | undefined {
-    return arr.length > 0 ? arr[arr.length - 1] : undefined;
-}

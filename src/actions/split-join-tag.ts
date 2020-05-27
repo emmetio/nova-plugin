@@ -1,4 +1,4 @@
-import { isXML, syntaxInfo, SyntaxCache } from '../lib/syntax';
+import { isXML, syntaxInfo } from '../lib/syntax';
 import { getTagContext } from '../lib/emmet';
 import { isSpace } from '../lib/utils';
 
@@ -7,10 +7,9 @@ nova.commands.register('emmet.split-join-tag', editor => {
     const nextRanges: Range[] = [];
 
     editor.edit(edit => {
-        const cache: SyntaxCache = {};
         for (const sel of selections) {
             const pos = sel.start;
-            const { syntax } = syntaxInfo(editor, pos, cache);
+            const { syntax } = syntaxInfo(editor, pos);
             const xml = !!syntax && isXML(syntax);
             const tag = getTagContext(editor, pos, xml);
 

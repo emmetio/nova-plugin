@@ -2,7 +2,7 @@ import Scanner from '@emmetio/scanner';
 import { scan, createOptions, ElementType, ScannerOptions } from '@emmetio/html-matcher';
 import matchCSS from '@emmetio/css-matcher';
 import { isSpace, getContent, narrowToNonSpace, toRange } from '../lib/utils';
-import { isHTML, isXML, isCSS, syntaxInfo, SyntaxCache } from '../lib/syntax';
+import { isHTML, isXML, isCSS, syntaxInfo, SyntaxInfo } from '../lib/syntax';
 
 interface Block {
     range: Range;
@@ -23,12 +23,11 @@ const cssComment: CommentTokens = ['/*', '*/'];
 
 nova.commands.register('emmet.comment', editor => {
     const selection = editor.selectedRanges.slice().reverse();
-    const cache: SyntaxCache = {};
     editor.edit(edit => {
         for (const sel of selection) {
-            const { syntax } = syntaxInfo(editor, sel.start, cache);
-            const tokens = syntax && isCSS(syntax) ? cssComment : htmlComment;
-            const block = getRangeForComment(editor, sel.start, cache);
+            const info = syntaxInfo(editor, sel.start);
+            const tokens = isCSS(info.syntax) ? cssComment : htmlComment;
+            const block = getRangeForComment(editor, sel.start, info);
 
             if (block && block.commentStart) {
                 // Caret inside comment, strip it
@@ -124,27 +123,29 @@ function getCommentRegions(editor: TextEditor, range: Range, tokens: CommentToke
     return result;
 }
 
-function getRangeForComment(editor: TextEditor, pos: number, cache?: SyntaxCache): Block | undefined {
-    const { syntax } = syntaxInfo(editor, pos, cache);
-    if (!syntax) {
-        return;
-    }
-
+function getRangeForComment(editor: TextEditor, pos: number, info: SyntaxInfo): Block | undefined {
+    const { syntax, context } = info;
     if (isHTML(syntax)) {
         return getHTMLBlockRange(getContent(editor), pos, isXML(syntax));
     }
 
     if (isCSS(syntax)) {
-        const content = getContent(editor);
-        const comment = findCSSComment(content, pos);
+        let content = getContent(editor);
+        let offset = 0;
+        if (context && context.type === 'css' && context.embedded) {
+            offset = context.embedded[0];
+            content = content.slice(context.embedded[0], context.embedded[1]);
+        }
+
+        const comment = findCSSComment(content, pos - offset, offset);
         if (comment) {
             return comment;
         }
 
-        const css = matchCSS(content, pos);
+        const css = matchCSS(content, pos - offset);
         if (css) {
             return {
-                range: new Range(css.start, css.end)
+                range: new Range(css.start + offset, css.end + offset)
             };
         }
     }
@@ -209,7 +210,7 @@ function getHTMLBlockRange(source: string, pos: number, xml = false): Block | un
  * If given `pos` location is inside CSS comment in given `code`, returns its
  * range
  */
-function findCSSComment(code: string, pos: number): Block | undefined {
+function findCSSComment(code: string, pos: number, offset = 0): Block | undefined {
     const enum Chars {
         Asterisk = 42,
         Slash = 47,
@@ -230,7 +231,7 @@ function findCSSComment(code: string, pos: number): Block | undefined {
 
             if (start < pos && pos < scanner.pos) {
                 return {
-                    range: new Range(start, scanner.pos),
+                    range: new Range(start + offset, scanner.pos + offset),
                     commentStart: cssComment[0],
                     commentEnd: cssComment[1],
                 };

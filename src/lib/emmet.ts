@@ -3,9 +3,9 @@ import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, TextRange } from '@emmetio/action-utils';
 import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
-import { isXML, syntaxInfo, isCSS, isSupported, docSyntax } from './syntax';
+import { isXML, syntaxInfo, isCSS, isSupported, docSyntax, getMarkupAbbreviationContext, getStylesheetAbbreviationContext } from './syntax';
 import { getContent, isQuotedString } from './utils';
-import getAbbreviationContext, { getCSSContext, getHTMLContext } from './context';
+import { getCSSContext, getHTMLContext } from './context';
 import getEmmetConfig from './config';
 import getOutputOptions, { field } from './output';
 
@@ -211,17 +211,24 @@ export function getTagContext(editor: TextEditor, pos: number, xml?: boolean): C
 /**
  * Returns Emmet options for given character location in editor
  */
-export function getOptions(editor: TextEditor, pos: number, withContext = false): UserConfig {
+export function getOptions(editor: TextEditor, pos: number): UserConfig {
     const info = syntaxInfo(editor, pos);
-    const config = info as UserConfig;
-    if (!config.syntax) {
-        config.syntax = 'html';
-    }
+    const { context } = info;
 
-    if (withContext) {
-        Object.assign(config, getAbbreviationContext(editor, pos));
-    } else {
-        config.options = getOutputOptions(editor, pos, info.inline);
+    const config: UserConfig = {
+        type: info.type,
+        syntax: info.syntax || 'html',
+        options: getOutputOptions(editor, pos, info.inline)
+    };
+
+    if (context) {
+        const content = getContent(editor);
+        // Set context from syntax info
+        if (context.type === 'html' && context.ancestors.length) {
+            config.context = getMarkupAbbreviationContext(content, context);
+        } else if (context.type === 'css') {
+            config.context = getStylesheetAbbreviationContext(context);
+        }
     }
 
     return config;

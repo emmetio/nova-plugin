@@ -1,6 +1,8 @@
-import { SyntaxType } from 'emmet';
-import { scan, attributes, ElementType } from '@emmetio/html-matcher';
-import { isQuote, getContent } from './utils';
+import { SyntaxType, AbbreviationContext, CSSAbbreviationScope } from 'emmet';
+import { attributes } from '@emmetio/html-matcher';
+import { TokenType } from '@emmetio/css-matcher';
+import { getHTMLContext, CSSContext, HTMLContext } from '@emmetio/action-utils';
+import { getContent, attributeValue, last } from './utils';
 
 const markupSyntaxes = ['html', 'xml', 'xsl', 'jsx', 'haml', 'jade', 'pug', 'slim'];
 const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'sss', 'stylus', 'postcss'];
@@ -11,18 +13,9 @@ const jsxSyntaxes = ['jsx', 'tsx'];
 
 export interface SyntaxInfo {
     type: SyntaxType;
-    syntax?: string;
-    inline?: boolean;
-}
-
-export interface StylesheetRegion {
-    range: [number, number];
     syntax: string;
     inline?: boolean;
-}
-
-export interface SyntaxCache {
-    stylesheetRegions?: StylesheetRegion[];
+    context?: HTMLContext | CSSContext;
 }
 
 /**
@@ -34,25 +27,30 @@ export interface SyntaxCache {
  * returns `null`, but if `fallback` argument is provided, it returns data for
  * given fallback syntax
  */
-export function syntaxInfo(editor: TextEditor, pos: number, cache?: SyntaxCache): SyntaxInfo {
+export function syntaxInfo(editor: TextEditor, pos: number): SyntaxInfo {
     let syntax = docSyntax(editor);
     let inline: boolean | undefined;
+    let context: HTMLContext | CSSContext | undefined;
 
     if (isHTML(syntax)) {
-        // In HTML documents it’s possible to embed stylesheets.
-        // Check if `pos` is in such region
-        const stylesheet = getStylesheetRegion(getContent(editor), pos, cache);
+        const content = getContent(editor);
+        context = getHTMLContext(content, pos, {
+          xml: isXML(syntax)
+        });
 
-        if (stylesheet) {
-            syntax = stylesheet.syntax;
-            inline = stylesheet.inline;
+        if (context.css) {
+            // `pos` is in embedded CSS
+            syntax = getEmbeddedStyleSyntax(content, context) || 'css';
+            inline = context.css.inline;
+            context = context.css;
         }
     }
 
     return {
         type: getSyntaxType(syntax),
         syntax,
-        inline
+        inline,
+        context
     };
 }
 
@@ -111,79 +109,52 @@ export function isJSX(syntax?: string): boolean {
 }
 
 /**
- * Extracts ranges from given HTML/XML document with embedded stylesheet syntax
+ * Returns embedded stylesheet syntax from given HTML context
  */
-export function extractStylesheetRanges(code: string): StylesheetRegion[] {
-    const result: StylesheetRegion[] = [];
-    let pendingSyntax: string | undefined;
-    let pendingPos = -1;
-
-    scan(code, (name, type, start, end) => {
-        if (name === 'style') {
-            if (type === ElementType.Open) {
-                pendingSyntax = 'css';
-                pendingPos = end;
-
-                for (const attr of attributes(code.slice(start, end), name)) {
-                    // In case if `type` attribute is provided, check its value
-                    // to override default syntax
-                    if (attr.name === 'type' && isCSS(attr.value)) {
-                        pendingSyntax = attr.value;
-                    }
-                }
-            } else if (type === ElementType.Close && pendingSyntax) {
-                result.push({
-                    range: [pendingPos, start],
-                    syntax: pendingSyntax
-                });
-                pendingSyntax = undefined;
-            }
-        } else if (type === ElementType.Open || type === ElementType.SelfClose) {
-            // Entered open tag: check if there’s `style` attribute
-            const tag = code.slice(start, end);
-            if (tag.includes('style')) {
-                for (const attr of attributes(tag, name)) {
-                    if (attr.name === 'style' && attr.value != null) {
-                        let valueStart = attr.valueStart!;
-                        let valueEnd = attr.valueEnd!;
-
-                        if (isQuote(tag[valueStart])) {
-                            valueStart++;
-                        }
-
-                        if (isQuote(tag[valueEnd - 1]) && valueEnd > valueStart) {
-                            valueEnd--;
-                        }
-
-                        result.push({
-                            range: [start + valueStart, start + valueEnd],
-                            syntax: 'css',
-                            inline: true
-                        });
-                    }
-                }
+export function getEmbeddedStyleSyntax(code: string, ctx: HTMLContext): string | undefined {
+    const parent = last(ctx.ancestors);
+    if (parent && parent.name === 'style') {
+        for (const attr of attributes(code.slice(parent.range[0], parent.range[1]), parent.name)) {
+            if (attr.name === 'type') {
+                return attributeValue(attr);
             }
         }
-    });
-
-    if (pendingSyntax) {
-        // Unclosed <style> element
-        result.push({
-            range: [pendingPos, code.length],
-            syntax: pendingSyntax
-        });
     }
-
-    return result;
 }
 
-function getStylesheetRegion(code: string, pos: number, cache?: SyntaxCache): StylesheetRegion | undefined {
-    let regions: StylesheetRegion[];
-    if (cache) {
-        regions = cache.stylesheetRegions || (cache.stylesheetRegions = extractStylesheetRanges(code));
-    } else {
-        regions = extractStylesheetRanges(code);
+/**
+ * Returns context for Emmet abbreviation from given HTML context
+ */
+export function getMarkupAbbreviationContext(code: string, ctx: HTMLContext): AbbreviationContext | undefined {
+    const parent = last(ctx.ancestors);
+    if (parent) {
+        const attrs: { [name: string]: string } = {};
+        for (const attr of attributes(code.slice(parent.range[0], parent.range[1]), parent.name)) {
+            attrs[attr.name] = attributeValue(attr) || '';
+        }
+
+        return {
+            name: parent.name,
+            attributes: attrs
+        };
+    }
+}
+
+/**
+ * Returns context for Emmet abbreviation from given CSS context
+ */
+export function getStylesheetAbbreviationContext(ctx: CSSContext): AbbreviationContext {
+    const parent = last(ctx.ancestors);
+    let scope: string = CSSAbbreviationScope.Global;
+    if (ctx.current) {
+        if (ctx.current.type === TokenType.PropertyValue && parent) {
+            scope = parent.name;
+        } else if (ctx.current.type === TokenType.Selector && !parent) {
+            scope = CSSAbbreviationScope.Section;
+        }
     }
 
-    return regions.find(r => r.range[0] <= pos && pos <= r.range[1]);
+    return {
+        name: scope
+    };
 }

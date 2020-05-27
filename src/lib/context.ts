@@ -1,4 +1,4 @@
-import { AbbreviationContext, Options } from 'emmet';
+import { AbbreviationContext, Options, CSSAbbreviationScope } from 'emmet';
 import { scan, createOptions, attributes, ElementType, AttributeToken, ScannerOptions } from '@emmetio/html-matcher';
 import { scan as scanCSS, TokenType } from '@emmetio/css-matcher';
 import { isQuote, isQuotedString, getContent } from './utils';
@@ -161,43 +161,57 @@ export function getHTMLContext(code: string, pos: number, opt: HTMLContextOption
 
 export function getCSSContext(code: string, pos: number): SyntaxContext | undefined {
     let section = 0;
-    let valid = true;
     let name = '';
+    let valid = false;
 
     scanCSS(code, (type, start, end) => {
-        if (start >= pos) {
-            // Moved beyond target location, stop parsing
-            return false;
-        }
-
-        if (start <= pos && end >= pos) {
-            // Direct hit into token: in this case, the only allowed tokens here
-            // are property name and value
-            valid = type === TokenType.PropertyValue || type === TokenType.PropertyName;
+        if (end >= pos) {
+            if (start <= pos) {
+                // Direct hit into token: break here to not capture property name
+                if (type === TokenType.Selector) {
+                    // Handle edge case: start abbreviation typing before nested
+                    // section in preprocessors like LESS or SCSS: in this case
+                    // entered abbreviation (expecting property here) becomes part
+                    // of selector
+                    valid = pos === start + 1;
+                } else {
+                    valid = type === TokenType.PropertyValue || type === TokenType.PropertyName;
+                }
+            }
             return false;
         }
 
         switch (type) {
             case TokenType.Selector:
-                section++; break;
+                section++;
+                break;
 
             case TokenType.PropertyName:
-                name = code.slice(start, end); break;
+                name = code.slice(start, end);
+                break;
 
             case TokenType.PropertyValue:
-                name = ''; break;
+                name = '';
+                break;
 
             case TokenType.BlockEnd:
-                section--; name = ''; break;
+                section--;
+                name = '';
+                break;
         }
     });
 
-    if (valid && (name || section)) {
-        const result: SyntaxContext = { syntax: 'css' };
-        if (name) {
-            result.context = { name };
-        }
-        return result;
+    const scope = section
+        // Allow all snippet types
+        ? CSSAbbreviationScope.Global
+        // Exclude properties
+        : CSSAbbreviationScope.Section;
+
+    if (valid) {
+        return {
+            syntax: 'css',
+            context: { name: name || scope }
+        };
     }
 }
 
