@@ -151,7 +151,7 @@ export function getStylesheetAbbreviationContext(ctx: CSSContext): AbbreviationC
     if (ctx.current) {
         if (ctx.current.type === TokenType.PropertyValue && parent) {
             scope = parent.name;
-        } else if (ctx.current.type === TokenType.Selector && !parent) {
+        } else if ((ctx.current.type === TokenType.Selector || ctx.current.type === TokenType.PropertyName) && !parent) {
             scope = CSSAbbreviationScope.Section;
         }
     }

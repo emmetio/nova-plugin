@@ -93,7 +93,7 @@ export function extract(code: string, pos: number, type: SyntaxType = 'markup', 
         lookAhead: type !== 'stylesheet',
         type,
         ...options
-    })
+    });
 }
 
 /**

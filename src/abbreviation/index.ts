@@ -1,4 +1,4 @@
-import { UserConfig } from 'emmet';
+import { UserConfig, CSSAbbreviationScope } from 'emmet';
 import { getCSSContext, getHTMLContext, CSSContext } from '@emmetio/action-utils';
 import { TokenType } from '@emmetio/css-matcher';
 import AbbreviationTracker, { handleChange, stopTracking, startTracking } from './AbbreviationTracker';
@@ -134,7 +134,23 @@ function startAbbreviationTracking(editor: TextEditor, pos: number): Abbreviatio
                 return;
             }
 
-            return startTracking(editor, start, end, { offset, options });
+            const tracker = startTracking(editor, start, end, { offset, options });
+            if (tracker.abbreviation?.type === 'abbreviation' && options.context?.name === CSSAbbreviationScope.Section) {
+                // Make a silly check for section context: if user start typing
+                // CSS selector at the end of file, it will be treated as property
+                // name and provide unrelated completion by default.
+                // We should check if captured abbreviation actually matched
+                // snippet to continue. Otherwise, ignore this abbreviation.
+                // By default, unresolved abbreviations are converted to CSS properties,
+                // e.g. `a` → `a: ;`. If that’s the case, stop tracking
+                const { abbr, preview } = tracker.abbreviation;
+                if (preview.startsWith(abbr) && /^:\s*;?$/.test(preview.slice(abbr.length))) {
+                    stopTracking(editor);
+                    return;
+                }
+            }
+
+            return tracker;
         }
     }
 }
