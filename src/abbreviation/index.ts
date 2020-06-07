@@ -16,7 +16,7 @@ export { AbbreviationTracker };
 const tabStop = String.fromCodePoint(0xFFFC);
 const reJSXAbbrStart = /^[a-zA-Z.#\[\(]$/;
 const reWordBound = /^[\s>;"\']?[a-zA-Z.#!@\[\(]$/;
-const reStylesheetWordBound = /^[\s;]?[a-zA-Z!@]$/;
+const reStylesheetWordBound = /^[\s;"\']?[a-zA-Z!@]$/;
 const pairs = {
     '{': '}',
     '[': ']',
@@ -227,7 +227,7 @@ function getActivationContext(editor: TextEditor, pos: number): UserConfig | und
         const content = getContent(editor);
         const ctx = getHTMLContext(content, pos, { xml: isXML(syntax) });
         if (ctx.css) {
-            return getCSSActivationContext(editor, pos, getEmbeddedStyleSyntax(content, ctx) || syntax, ctx.css);
+            return getCSSActivationContext(editor, pos, getEmbeddedStyleSyntax(content, ctx) || 'css', ctx.css);
         }
 
         if (!ctx.current) {
