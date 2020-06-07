@@ -1,7 +1,12 @@
+## 1.2.1
+
+* Emmet now handles CSS abbreviations inside `style="..."` attributes.
+* Minor fixes in CSS abbreviations.
+
 ## 1.2.0
 
-* Greatly improved CSS abbreviation capturing: it should properly work for preprocessors like SCSS and LESS and provide better completions when full property name is entered
-* Abbreviation capturing now works in PHP and HTML+ERB syntaxes
+* Greatly improved CSS abbreviation capturing: it should properly work for preprocessors like SCSS and LESS and provide better completions when full property name is entered.
+* Abbreviation capturing now works in PHP and HTML+ERB syntaxes.
 
 ## v1.1.0
 
