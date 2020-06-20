@@ -203,7 +203,6 @@ export function handleChange(editor: TextEditor): AbbreviationTracker | undefine
         return
     }
 
-    const lastAbbr = { ...tracker.abbreviation } as ParsedAbbreviation;
     const length = getContent(editor).length;
     const pos = getCaret(editor);
     const delta = length - tracker.lastLength;
@@ -231,17 +230,6 @@ export function handleChange(editor: TextEditor): AbbreviationTracker | undefine
     }
 
     tracker.updateAbbreviation(editor);
-
-    // Check for edge case: updated abbreviation is invalid and
-    // previous state was valid and its preview is the same as new abbreviation:
-    // wew expanded abbreviation via completion item
-    if (tracker.abbreviation?.type === 'error' && lastAbbr.type === 'abbreviation') {
-        if (tracker.abbreviation.abbr === lastAbbr.preview) {
-            stopTracking(editor);
-            return;
-        }
-    }
-
     return tracker;
 }
 

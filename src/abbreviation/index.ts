@@ -184,9 +184,20 @@ function shouldStopTracking(tracker: AbbreviationTracker, pos: number): boolean 
             return true;
         }
 
-        if (tracker.abbreviation.error.pos === 0) {
+        const errPos = tracker.abbreviation.error.pos;
+        if (errPos === 0) {
             // Most likely it’s an expanded abbreviation
             return true;
+        }
+
+        if (tracker.options?.type === 'stylesheet') {
+            // Since Nova doesn’t have events to detect when completion is
+            // inserted, we have to use some tricks to detect if we should either
+            // reset or mark abbreviation as error
+            const errChar = tracker.abbreviation.abbr.charAt(errPos);
+            if (/[\s;,]/.test(errChar)) {
+                return true;
+            }
         }
 
         const start = tracker.range[0];
