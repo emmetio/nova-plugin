@@ -19,6 +19,7 @@
     "@emmetio/css-abbreviation": "^2.1.1",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.10",
+    "@types/nova-editor": "^1.0.0",
     "mocha": "^7.2.0",
     "rollup": "^2.14.0",
     "rollup-plugin-node-resolve": "^5.2.0",
