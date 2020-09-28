@@ -5,7 +5,7 @@ import { getHTMLContext, CSSContext, HTMLContext, getCSSContext } from '@emmetio
 import { getContent, attributeValue, last } from './utils';
 
 const xmlSyntaxes = ['xml', 'xsl', 'jsx'];
-const htmlSyntaxes = ['html', 'vue', 'html+erb', 'php', 'njk', 'nunj'];
+const htmlSyntaxes = ['html', 'vue', 'html+erb', 'php', 'njk', 'nunj', 'blade'];
 const cssSyntaxes = ['css', 'scss', 'less'];
 const jsxSyntaxes = ['jsx', 'tsx'];
 const markupSyntaxes = ['haml', 'jade', 'pug', 'slim'].concat(htmlSyntaxes, xmlSyntaxes, jsxSyntaxes);
