@@ -1,3 +1,7 @@
+## 1.2.3
+
+* Support Laravel Blade and Nunjucks syntaxes for auto abbreviations
+
 ## 1.2.1
 
 * Emmet now handles CSS abbreviations inside `style="..."` attributes.
