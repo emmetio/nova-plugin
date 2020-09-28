@@ -1,7 +1,7 @@
 {
   "identifier": "emmetio.Emmet",
   "name": "Emmet",
-  "vendor": "Emmet",
+  "organization": "Emmet",
   "description": "Emmet — the essential toolkit for web-developers",
   "version": "1.0",
   "categories": ["completions"],
