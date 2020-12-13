@@ -4,7 +4,7 @@ import { tokenize as stylesheetTokenize, Literal as StylesheetLiteral } from '@e
 import { isEnabled, getTracker, extractTracker, AbbreviationTracker } from '../abbreviation';
 import { expand, knownTags } from '../lib/emmet';
 import { isSupported, isJSX, isCSS } from '../lib/syntax';
-import { toRange } from '../lib/utils';
+import { substr, toRange } from '../lib/utils';
 
 /**
  * Creates completion provider which captures Emmet abbreviation as user types
@@ -31,7 +31,7 @@ export default function createProvider(): CompletionAssistant {
                 t.mark('Try completion');
                 result.push(createExpandAbbreviationCompletion(editor, tracker));
                 t.mark('Create abbreviation completion');
-                result = result.concat(getSnippetsCompletions(editor, tracker, ctx));
+                result = result.concat(getSnippetsCompletions(tracker, ctx));
                 t.mark('Create snippet completions');
             }
 
@@ -55,7 +55,8 @@ function createExpandAbbreviationCompletion(editor: TextEditor, tracker: Abbrevi
     const abbrData = tracker.abbreviation!;
     let { abbr } = abbrData;
 
-    const completion = new CompletionItem(abbrData.abbr, CompletionItemKind.Expression);
+    const completion = new CompletionItem(abbr, CompletionItemKind.Expression);
+    completion.filterText = substr(editor, tracker.range);
     completion.tokenize = true;
     completion.range = toRange(tracker.range);
     completion.insertText = expand(editor, abbr, tracker.options);
@@ -80,8 +81,8 @@ function allowTracking(editor: TextEditor): boolean {
 /**
  * Returns list of raw snippet completions
  */
-function getSnippetsCompletions(editor: TextEditor, tracker: AbbreviationTracker, ctx: CompletionContext): CompletionItem[] {
-    const abbr = editor.getTextInRange(toRange(tracker.range));
+function getSnippetsCompletions(tracker: AbbreviationTracker, ctx: CompletionContext): CompletionItem[] {
+    const abbr = tracker.abbreviation!.abbr;
     const pos = ctx.position - tracker.range[0];
     const syntax = tracker.options!.syntax!;
     const result: CompletionItem[] = isCSS(syntax)

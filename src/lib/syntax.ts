@@ -4,7 +4,7 @@ import { TokenType } from '@emmetio/css-matcher';
 import { getHTMLContext, CSSContext, HTMLContext, getCSSContext } from '@emmetio/action-utils';
 import { getContent, attributeValue, last } from './utils';
 
-const xmlSyntaxes = ['xml', 'xsl', 'jsx'];
+const xmlSyntaxes = ['xml', 'xsl'];
 const htmlSyntaxes = ['html', 'vue', 'html+erb', 'php', 'njk', 'nunj', 'blade', 'svelte', 'twig'];
 const cssSyntaxes = ['css', 'scss', 'less'];
 const jsxSyntaxes = ['jsx', 'tsx'];
@@ -74,7 +74,9 @@ export function getSyntaxType(syntax?: string): SyntaxType {
  * Check if given syntax is XML dialect
  */
 export function isXML(syntax?: string): boolean {
-    return syntax ? xmlSyntaxes.includes(syntax) : false;
+    return syntax
+        ? xmlSyntaxes.includes(syntax) || jsxSyntaxes.includes(syntax)
+        : false;
 }
 
 /**
