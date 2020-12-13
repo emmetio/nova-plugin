@@ -6,7 +6,7 @@ nova.commands.register('emmet.decrement-number-1', ed => incrementNumber(ed, -1)
 nova.commands.register('emmet.increment-number-01', ed => incrementNumber(ed, .1));
 nova.commands.register('emmet.decrement-number-01', ed => incrementNumber(ed, -.1));
 nova.commands.register('emmet.increment-number-10', ed => incrementNumber(ed, 10));
-nova.commands.register('emmet.decrement-number-10', ed => incrementNumber(ed, 10));
+nova.commands.register('emmet.decrement-number-10', ed => incrementNumber(ed, -10));
 
 function incrementNumber(editor: TextEditor, delta = 1) {
     editor.edit(edit => {
