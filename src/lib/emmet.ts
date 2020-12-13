@@ -56,7 +56,7 @@ export const knownTags = [
 export function expand(editor: TextEditor, abbr: string | MarkupAbbreviation | StylesheetAbbreviation, config?: UserConfig) {
     let opt: UserConfig = { cache };
     const outputOpt: Partial<Options> = {
-        'output.field': field(),
+        'output.field': field,
         'output.format': !config || !config['inline'],
     };
 

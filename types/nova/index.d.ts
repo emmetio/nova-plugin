@@ -708,6 +708,9 @@ declare class CompletionItem {
      */
     insertText?: string;
 
+    /** The format used when inserting the item’s insertText, specified using the InsertTextFormat enum. */
+    insertTextFormat?: InsertTextFormat;
+
     /**
      * A `Range` value that describes the textual range within the editor that
      * should be replaced when the item is chosen. If not specified, the word
@@ -733,6 +736,11 @@ declare class CompletionItem {
     tokenize?: boolean;
 
     constructor(label: string, kind: CompletionItemKind);
+}
+
+declare enum InsertTextFormat {
+    PlainText = 0,
+    Snippet = 1,
 }
 
 /**

@@ -2,7 +2,6 @@ import { UserConfig, markupAbbreviation, MarkupAbbreviation, stylesheetAbbreviat
 import { TextRange } from '@emmetio/action-utils';
 import { substr, toRange, getCaret, getContent, AbbrError, replaceWithSnippet } from '../lib/utils';
 import { getOptions, expand } from '../lib/emmet';
-import { field } from '../lib/output';
 
 interface AbbrBase {
     abbr: string;
@@ -83,9 +82,6 @@ export default class AbbreviationTracker {
 
         if (!this.options) {
             this.options = getOptions(editor, this.range[0]);
-        } else {
-            // Replace field on each update to reset its internal state
-            this.options.options!['output.field'] = field();
         }
 
         this.abbreviation = null;

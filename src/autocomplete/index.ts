@@ -60,6 +60,7 @@ function createExpandAbbreviationCompletion(editor: TextEditor, tracker: Abbrevi
     completion.tokenize = true;
     completion.range = toRange(tracker.range);
     completion.insertText = expand(editor, abbr, tracker.options);
+    completion.insertTextFormat = InsertTextFormat.Snippet;
     completion.detail = 'Emmet';
 
     if (nova.config.get('emmet.preview-completion', 'boolean')) {
