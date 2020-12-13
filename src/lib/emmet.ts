@@ -2,18 +2,10 @@ import expandAbbreviation, { extract as extractAbbreviation, UserConfig, Abbrevi
 import match, { balancedInward, balancedOutward } from '@emmetio/html-matcher';
 import { balancedInward as cssBalancedInward, balancedOutward as cssBalancedOutward } from '@emmetio/css-matcher';
 import { selectItemCSS, selectItemHTML, TextRange } from '@emmetio/action-utils';
-import evaluate, { extract as extractMath, ExtractOptions as MathExtractOptions } from '@emmetio/math-expression';
 import { isXML, syntaxInfo, docSyntax, getMarkupAbbreviationContext, getStylesheetAbbreviationContext } from './syntax';
 import { getContent, isQuotedString } from './utils';
 import getEmmetConfig from './config';
 import getOutputOptions, { field } from './output';
-
-interface EvaluatedMath {
-    start: number;
-    end: number;
-    result: number;
-    snippet: string;
-}
 
 export interface ContextTag extends AbbreviationContext {
     open: TextRange;
@@ -122,27 +114,6 @@ export function selectItem(code: string, pos: number, isCSS?: boolean, isPreviou
     return isCSS
         ? selectItemCSS(code, pos, isPrevious)
         : selectItemHTML(code, pos, isPrevious);
-}
-
-/**
- * Finds and evaluates math expression at given position in line
- */
-export function evaluateMath(code: string, pos: number, options?: Partial<MathExtractOptions>): EvaluatedMath | undefined {
-    const expr = extractMath(code, pos, options);
-    if (expr) {
-        try {
-            const [start, end] = expr;
-            const result = evaluate(code.slice(start, end));
-            if (result) {
-                return {
-                    start, end, result,
-                    snippet: result.toFixed(4).replace(/\.?0+$/, '')
-                };
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    }
 }
 
 /**
