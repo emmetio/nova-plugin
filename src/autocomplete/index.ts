@@ -13,7 +13,7 @@ import { toRange } from '../lib/utils';
 export default function createProvider(): CompletionAssistant {
     return {
         provideCompletionItems(editor, ctx) {
-            if (!isEnabled()) {
+            if (!isEnabled(editor)) {
                 return;
             }
 

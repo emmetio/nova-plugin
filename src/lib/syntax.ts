@@ -67,7 +67,7 @@ export function docSyntax(editor: TextEditor): string {
  * Returns Emmet abbreviation type for given syntax
  */
 export function getSyntaxType(syntax?: string): SyntaxType {
-    return syntax && stylesheetSyntaxes.includes(syntax) ? 'stylesheet' : 'markup';
+    return syntax && isStylesheetSyntax(syntax) ? 'stylesheet' : 'markup';
 }
 
 /**
@@ -90,9 +90,21 @@ export function isHTML(syntax?: string): boolean {
  * Check if given syntax name is supported by Emmet
  */
 export function isSupported(syntax: string): boolean {
-    return syntax
-        ? markupSyntaxes.includes(syntax) || stylesheetSyntaxes.includes(syntax)
-        : false;
+    return isMarkupSyntax(syntax) || isStylesheetSyntax(syntax);
+}
+
+/**
+ * Check if given syntax is a known markup Emmet syntax
+ */
+export function isMarkupSyntax(syntax: string): boolean {
+    return markupSyntaxes.includes(syntax);
+}
+
+/**
+ * Check if given syntax is a known stylesheet Emmet syntax
+ */
+export function isStylesheetSyntax(syntax: string): boolean {
+    return stylesheetSyntaxes.includes(syntax);
 }
 
 /**

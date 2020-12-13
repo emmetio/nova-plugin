@@ -49,7 +49,7 @@ export default function initAbbreviationTracker(editor: TextEditor) {
     }));
 
     disposable.add(editor.onDidChangeSelection(ed => {
-        if (isEnabled()) {
+        if (isEnabled(ed)) {
             lastPos = getCaret(ed);
         }
     }));
@@ -63,7 +63,7 @@ export default function initAbbreviationTracker(editor: TextEditor) {
  * Check if abbreviation tracking is allowed in editor at given location
  */
 function allowTracking(editor: TextEditor): boolean {
-    if (isEnabled()) {
+    if (isEnabled(editor)) {
         const syntax = docSyntax(editor);
         return isSupported(syntax) || isJSX(syntax);
     }
@@ -74,8 +74,14 @@ function allowTracking(editor: TextEditor): boolean {
 /**
  * Check if Emmet abbreviation tracking is enabled
  */
-export function isEnabled(): boolean {
-    return nova.config.get('emmet.enable-completions', 'boolean')!;
+export function isEnabled(editor: TextEditor): boolean {
+    if (nova.config.get('emmet.enable-completions', 'boolean')) {
+        const ignored = createList(nova.config.get('emmet.ignored-syntaxes', 'string') || '');
+        const syntax = docSyntax(editor);
+        const type = getSyntaxType(syntax);
+        return !ignored.includes(syntax) && !ignored.includes(type);
+    }
+    return false;
 }
 
 /**
@@ -293,3 +299,10 @@ function isTypingBeforeSelector(editor: TextEditor, pos: number, { current }: CS
     return false;
 }
 
+function createList(text: string): string[] {
+    return text
+        .toLowerCase()
+        .replace(/['"]/g, '')
+        .split(/[,;]/g)
+        .map(item => item.trim());
+}

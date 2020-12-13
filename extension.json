@@ -137,6 +137,12 @@
       "description": "Display expanded abbreviation preview in completions pop-up.",
       "type": "boolean",
       "default": true
+    }, {
+      "key": "emmet.ignored-syntaxes",
+      "title": "Ignored syntaxes",
+      "description": "Comma-separated list of syntaxes where auto-complete should be disabled. Use 'markup' and 'stylesheet' keywords to disable completely in all markup or stylesheet syntaxes.",
+      "type": "string",
+      "default": ""
     }]
   }, {
     "key": "emmet.code-style",
