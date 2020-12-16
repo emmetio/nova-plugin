@@ -49,7 +49,7 @@ export function narrowToNonSpace(editor: TextEditor, range: TextRange): TextRang
 export function replaceWithSnippet(editor: TextEditor, range: Range, snippet: string): void {
     editor.edit(edit => {
         edit.delete(range);
-        edit.insert(range.start, snippet);
+        edit.insert(range.start, snippet, InsertTextFormat.Snippet);
     });
 }
 

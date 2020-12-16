@@ -224,7 +224,7 @@ declare class TextEditor {
      * callback (such as one registered using `onDidChange()`). Attempting to do
      * so will throw an Error.
      */
-    insert(text: string): Promise<any>;
+    insert(text: string, format?: InsertTextFormat): Promise<any>;
 
     /**
      * Requests that the editor be saved. For unsaved documents, this will present
@@ -515,7 +515,7 @@ declare class TextEditorEdit {
      * Inserts text at the provided character position. This method differs from
      * `replace()` in that it will automatically move the cursor.
      */
-    insert(position: number, text: string): void;
+    insert(position: number, text: string, format?: InsertTextFormat): void;
 }
 
 /**
