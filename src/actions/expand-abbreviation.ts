@@ -9,8 +9,11 @@ nova.commands.register('emmet.expand-abbreviation', editor => {
 
     if (abbr) {
         const config = getOptions(editor, caret);
-        // XXX as of Nova 3.1, `edit` object doesn’t support snippets insertion
-        config.options!['output.field'] = field();
+        if (nova.version[0] < 5) {
+            // XXX snippets expansion is supported in Nova 5, until that version
+            // should use old placeholder syntax
+            config.options!['output.field'] = field();
+        }
         const snippet = expand(editor, abbr.abbreviation, config);
         replaceWithSnippet(editor, new Range(abbr.start, abbr.end), snippet);
     }
