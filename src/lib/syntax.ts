@@ -7,7 +7,7 @@ import { getContent, attributeValue, last } from './utils';
 const xmlSyntaxes = ['xml', 'xsl'];
 const htmlSyntaxes = ['html', 'vue', 'html+erb', 'php', 'njk', 'nunj', 'blade', 'svelte', 'twig', 'liquid-html', 'jinja-html', 'jinja'];
 const cssSyntaxes = ['css', 'scss', 'less'];
-const jsxSyntaxes = ['jsx', 'tsx'];
+const jsxSyntaxes = ['jsx', 'tsx', 'javascript'];
 const markupSyntaxes = ['haml', 'jade', 'pug', 'slim'].concat(htmlSyntaxes, xmlSyntaxes, jsxSyntaxes);
 const stylesheetSyntaxes = ['sass', 'sss', 'stylus', 'postcss'].concat(cssSyntaxes);
 
