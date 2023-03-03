@@ -19,7 +19,7 @@
     "@emmetio/css-abbreviation": "^2.1.4",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.21",
-    "mocha": "^7.2.0",
+    "mocha": "^10.2.0",
     "rollup": "^2.28.2",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.26.0",
