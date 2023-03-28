@@ -1,6 +1,6 @@
 {
   "name": "@emmetio/nova-plugin",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Emmet plugin for Panic Nova editor",
   "main": "index.js",
   "scripts": {
