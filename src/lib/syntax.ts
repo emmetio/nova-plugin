@@ -8,7 +8,7 @@ const xmlSyntaxes = ['xml', 'xsl'];
 const htmlSyntaxes = ['html', 'vue', 'html+erb', 'php', 'njk', 'nunj', 'blade', 'svelte', 'twig', 'liquid-html', 'jinja-html', 'jinja', 'antlers'];
 const cssSyntaxes = ['css', 'scss', 'less'];
 const jsxSyntaxes = ['jsx', 'tsx', 'javascript', 'typescript'];
-const markupSyntaxes = ['haml', 'jade', 'pug', 'slim'].concat(htmlSyntaxes, xmlSyntaxes, jsxSyntaxes);
+const markupSyntaxes = ['haml', 'jade', 'pug', 'slim', 'astro'].concat(htmlSyntaxes, xmlSyntaxes, jsxSyntaxes);
 const stylesheetSyntaxes = ['sass', 'sss', 'stylus', 'postcss'].concat(cssSyntaxes);
 
 export interface SyntaxInfo {
